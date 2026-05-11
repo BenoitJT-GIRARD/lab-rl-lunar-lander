@@ -1,0 +1,91 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Environments ---
+.venv/
+venv/
+env/
+ENV/
+.env
+.envrc
+
+# --- uv ---
+.uv/
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# --- Testing / Linting ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.bandit
+
+# --- Logs / runtime ---
+logs/
+*.log
+tensorboard/
+runs/
+wandb/
+
+# --- Models / artifacts (kept lightweight in repo) ---
+models/checkpoints/
+*.tar.gz
+*.pkl
+*.npy
+
+# --- Streamlit ---
+.streamlit/secrets.toml
+
+# --- OS / temp ---
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# --- Project-specific ---
+infos/
+data/raw/
+videos/raw/
+*.mp4.tmp
