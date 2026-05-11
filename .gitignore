@@ -89,3 +89,5 @@ infos/
 data/raw/
 videos/raw/
 *.mp4.tmp
+# Final deliverable zip — produced on demand via scripts/package_deliverables.py
+Entrainez_votre_agent_RL_*.zip
