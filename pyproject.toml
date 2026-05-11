@@ -55,6 +55,7 @@ dev = [
     "ipykernel>=6.29",
     "jupyter>=1.1",
     "nbstripout>=0.7",
+    "python-pptx>=1.0",
 ]
 
 [build-system]
