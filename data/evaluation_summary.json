@@ -1,0 +1,17 @@
+{
+  "model": "G:\\Mon Drive\\OC\\Projet_11\\astrodynamics\\models\\ppo_lunarlander_best.zip",
+  "n_episodes": 100,
+  "mean_reward": 261.39435473000003,
+  "std_reward": 26.143631172496512,
+  "metrics": {
+    "n_episodes": 100.0,
+    "mean_reward": 262.2183903488285,
+    "std_reward": 18.204857923539628,
+    "min_reward": 222.52257713910691,
+    "max_reward": 299.9691218571159,
+    "median_reward": 263.08667113599665,
+    "mean_length": 307.3,
+    "mean_fuel_used": 140.85,
+    "success_rate": 1.0
+  }
+}
