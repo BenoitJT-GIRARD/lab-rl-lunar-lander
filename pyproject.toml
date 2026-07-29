@@ -42,6 +42,10 @@ dependencies = [
     # Utilities
     "rich>=13.9",
     "tensorboard>=2.18",
+    # TensorBoard still imports `pkg_resources`, which uv does not seed into the
+    # virtualenv the way pip-created venvs do. Cap below setuptools 81, which
+    # removed `pkg_resources` altogether.
+    "setuptools>=70,<81",
     "tqdm>=4.66",
 ]
 
