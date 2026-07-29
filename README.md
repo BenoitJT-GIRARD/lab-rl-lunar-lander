@@ -4,8 +4,7 @@ Reinforcement-learning autopilot for the Eagle-1 lunar lander, based on
 [Gymnasium](https://gymnasium.farama.org/) `LunarLander-v3` and
 [Stable-Baselines3](https://stable-baselines3.readthedocs.io/).
 
-The repository delivers the full project requested in the
-brief *Entrainez votre agent RL* (Projet 11):
+The repository delivers a full project to practice training RL agents:
 
 - a clean implementation of the three foundational exercises (CartPole
   random policy, FrozenLake tabular Q-learning, CartPole DQN — manual
@@ -18,15 +17,13 @@ brief *Entrainez votre agent RL* (Projet 11):
 - an interactive Streamlit performance dashboard with multiple filters,
 - a 20-30 s `.mp4` of a successful landing.
 
-A full walk-through is provided in `notebooks/eagle1_mission.ipynb` and
-the design notes are in `docs/`.
+A full walk-through is provided in `notebooks/eagle1_mission.ipynb`.
 
 ## Repository layout
 
 ```
 astrodynamics/
 ├── data/                    # CSV exports consumed by the dashboard
-├── docs/                    # design notes
 ├── logs/                    # TensorBoard runs (gitignored)
 ├── models/                  # Saved checkpoints (best PPO / baseline DQN)
 ├── notebooks/
@@ -72,6 +69,7 @@ uv run uvicorn astrodynamics.api:app --reload
 # 6. Launch the GUI / dashboard (point the GUI at the API URL)
 uv run streamlit run src/astrodynamics/gui.py
 uv run streamlit run src/astrodynamics/dashboard.py
+uv run tensorboard --logdir logs/tensorboard
 ```
 
 ## Reproducibility
