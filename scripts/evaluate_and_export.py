@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from stable_baselines3 import PPO  # noqa: E402
 
 from astrodynamics.training.evaluate import (  # noqa: E402
+    SOLVED_THRESHOLD,
     evaluate_seeds,
     run_episodes,
     summarise,
@@ -63,7 +64,9 @@ def main() -> None:
         )
 
     ensure_dirs()
-    model = PPO.load(str(args.model), device="auto")
+    # CPU: this is a three-layer MLP asked for one action at a time, and the measured
+    # rollout is faster there. See PPOHyperParameters.device.
+    model = PPO.load(str(args.model), device="cpu")
 
     # The canonical collection. Everything published comes from these episodes.
     canonical_seed = args.seeds[0]
@@ -114,6 +117,27 @@ def main() -> None:
             f"lowest landing rate {across['lowest_landing_rate']:.2%}"
         )
     print(f"\n[ok] {csv_path}\n[ok] {summary_path}\n[ok] {manifest_path}")
+
+    # The verdict, checked rather than left to a reader. The repository publishes "solves
+    # LunarLander-v3", and that sentence is about a mean over 100 episodes -- on every grid
+    # that was run, not only on the one whose episodes happen to be exported.
+    grids = across["per_seed"] if across else [{"seed": canonical_seed, **metrics}]
+    failing = [grid for grid in grids if grid["mean_reward"] < SOLVED_THRESHOLD]
+    if not failing:
+        print(
+            f"\nSolved: every seed grid clears the {SOLVED_THRESHOLD:.0f} mean-reward "
+            "threshold over 100 episodes."
+        )
+        return
+    detail = ", ".join(f"seed {grid['seed']} at {grid['mean_reward']:.1f}" for grid in failing)
+    message = f"Below the {SOLVED_THRESHOLD:.0f} threshold on {len(failing)} grid(s): {detail}."
+    if args.allow_below_threshold:
+        print(f"\n{message} Exported anyway, as asked.")
+        return
+    raise SystemExit(
+        f"\n{message}\nThe exports above were written. Re-run with "
+        "--allow-below-threshold to accept them, and say so wherever the number is published."
+    )
 
 
 if __name__ == "__main__":

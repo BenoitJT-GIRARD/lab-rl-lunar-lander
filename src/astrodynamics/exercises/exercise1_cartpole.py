@@ -61,6 +61,12 @@ def run_random_policy(
         Optional seed forwarded to ``env.reset`` to make results comparable.
     """
     env = gym.make(env_id)
+    # `action_space.sample()` draws from the space's own generator, not from the one
+    # `reset(seed=...)` touches. Without this line the seed made the *initial states*
+    # reproducible and left the policy itself random, so two runs of a "seeded" experiment
+    # returned different rewards.
+    if seed is not None:
+        env.action_space.seed(seed)
     history: list[EpisodeStats] = []
     try:
         for episode_idx in range(1, n_episodes + 1):

@@ -26,6 +26,8 @@ from stable_baselines3 import DQN as SB3DQN
 from stable_baselines3.common.evaluation import evaluate_policy
 from torch import nn, optim
 
+from astrodynamics.utils import set_global_seed
+
 
 @dataclass(slots=True)
 class Transition:
@@ -80,8 +82,15 @@ class DQNConfig:
     eps_end: float = 0.05
     eps_decay: float = 0.995
     learning_rate: float = 5e-4
-    target_update: int = 20
+    #: Gradient steps between two copies of the online network into the target network.
+    #: It used to be counted in *episodes*, which on CartPole means anything from 10 to 500
+    #: gradient steps depending on how well the agent was doing at the time -- the interval
+    #: shrank as the agent improved, which is the opposite of what a target network is for.
+    target_update: int = 500
     buffer_capacity: int = 10_000
+    #: Transitions collected before the first gradient step. It was declared and never
+    #: read: training actually started at `batch_size` transitions, so the first updates
+    #: were drawn from a handful of near-identical early states.
     learning_starts: int = 1_000
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     seed: int = 42
@@ -121,7 +130,7 @@ def _optimise(
     Returns the scalar loss for diagnostics, or ``None`` if the buffer is
     not yet populated enough to draw a batch.
     """
-    if len(buffer) < cfg.batch_size:
+    if len(buffer) < max(cfg.batch_size, cfg.learning_starts):
         return None
 
     batch = buffer.sample(cfg.batch_size)
@@ -150,11 +159,13 @@ def train_manual_dqn(
 ) -> tuple[DQN, DQNTrainingResult]:
     """Train a DQN agent from scratch using only PyTorch primitives."""
     cfg = config or DQNConfig()
-    random.seed(cfg.seed)
-    np.random.seed(cfg.seed)
-    torch.manual_seed(cfg.seed)
+    # One seeding helper for the whole project, so a run seeded here and a run seeded by
+    # the training pipeline cover the same generators -- this loop used to leave every GPU
+    # but the first unseeded.
+    set_global_seed(cfg.seed)
 
     env = gym.make(env_id)
+    env.action_space.seed(cfg.seed)
     n_obs = int(np.prod(env.observation_space.shape))
     n_actions = int(env.action_space.n)
     policy_net = DQN(n_obs, n_actions).to(cfg.device)
@@ -167,6 +178,7 @@ def train_manual_dqn(
 
     result = DQNTrainingResult()
     epsilon = cfg.eps_start
+    gradient_steps = 0
     try:
         for episode in range(cfg.n_episodes):
             state, _info = env.reset(seed=cfg.seed + episode)
@@ -185,11 +197,12 @@ def train_manual_dqn(
                 loss = _optimise(policy_net, target_net, optimizer, buffer, cfg)
                 if loss is not None:
                     result.losses.append(loss)
+                    gradient_steps += 1
+                    if gradient_steps % cfg.target_update == 0:
+                        target_net.load_state_dict(policy_net.state_dict())
 
             result.rewards.append(episode_reward)
             epsilon = max(cfg.eps_end, epsilon * cfg.eps_decay)
-            if (episode + 1) % cfg.target_update == 0:
-                target_net.load_state_dict(policy_net.state_dict())
     finally:
         env.close()
 

@@ -26,7 +26,9 @@ from astrodynamics.training.evaluate import (
 @pytest.fixture(scope="module")
 def tiny_model(tmp_path_factory: pytest.TempPathFactory):
     env = make_eval_env(seed=0)
-    model = PPO("MlpPolicy", env, n_steps=64, batch_size=32, n_epochs=1, seed=0, verbose=0)
+    model = PPO(
+        "MlpPolicy", env, n_steps=64, batch_size=32, n_epochs=1, seed=0, verbose=0, device="cpu"
+    )
     model.learn(total_timesteps=128, progress_bar=False)
     env.close()
     return model

@@ -62,7 +62,7 @@ dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
     "ruff>=0.7",
-    "bandit>=1.7",
+    "bandit[toml]>=1.7",
     "pre-commit>=4.0",
     "ipykernel>=6.29",
     "jupyter>=1.1",
@@ -75,18 +75,29 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 # --- uv configuration ---
-# We pull torch from the official CUDA 12.4 wheel index to leverage the
-# RTX-class GPU available on the training host. CPU-only fall-back is still
-# valid because Stable-Baselines3 transparently dispatches to the available
-# device.
+# DQN trains on the GPU here (measurably: see DQNHyperParameters.device), so torch comes
+# from the CUDA index on Windows, where the training host is. The Linux resolution is what
+# CI installs, and the runner has no card: pointing it at the CUDA index would download
+# about three gigabytes of NVIDIA runtime to run a CPU test suite.
+#
+# The marker is the platform, not the presence of a card -- uv resolves the lock file ahead
+# of time and cannot probe the hardware. On a Linux box with a GPU, swap the two indexes.
 [tool.uv]
 [[tool.uv.index]]
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.uv.sources]
-torch = [{ index = "pytorch-cu124" }]
+torch = [
+    { index = "pytorch-cu124", marker = "sys_platform == 'win32'" },
+    { index = "pytorch-cpu", marker = "sys_platform != 'win32'" },
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/astrodynamics"]
@@ -125,10 +136,18 @@ line-ending = "lf"
 minversion = "8.0"
 addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
+# Warnings are errors. Three blanket `ignore::` lines used to hide every DeprecationWarning
+# and UserWarning in the project, our own included -- which is how a deprecated Gymnasium
+# call goes unnoticed until it is removed. Each exemption below names what it silences and
+# comes from a dependency, not from this code.
 filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::UserWarning",
-    "ignore::PendingDeprecationWarning",
+    "error",
+    # SWIG 4.2 emits these while Box2D's extension module is being imported. Raising there
+    # unwinds through C and takes the interpreter down with it, so it cannot be an error.
+    "ignore:builtin type Swig.* has no __module__ attribute:DeprecationWarning",
+    "ignore:builtin type swigvarlink has no __module__ attribute:DeprecationWarning",
+    # pygame still imports pkg_resources at module load; nothing here can avoid it.
+    "ignore:pkg_resources is deprecated as an API:UserWarning",
 ]
 
 [tool.coverage.run]

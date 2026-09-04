@@ -80,7 +80,10 @@ def train(config: QLearningConfig | None = None, slippery: bool = False) -> dict
                 action = _epsilon_greedy(q_table, int(state), epsilon, rng)
                 new_state, reward, terminated, truncated, _info = env.step(action)
                 old_value = q_table[state, action]
-                future_max = np.max(q_table[new_state, :])
+                # No bootstrap through a terminal state: there is no next action to take,
+                # so the target is the reward alone. Truncation is different -- the episode
+                # was cut short and the value of where it stopped still counts.
+                future_max = 0.0 if terminated else float(np.max(q_table[new_state, :]))
                 q_table[state, action] = old_value + cfg.learning_rate * (
                     reward + cfg.discount_factor * future_max - old_value
                 )
@@ -90,9 +93,12 @@ def train(config: QLearningConfig | None = None, slippery: bool = False) -> dict
                     break
             rewards.append(total_reward)
             epsilons.append(epsilon)
+            # Decay from the number of episodes *finished*. Indexing on `episode` made the
+            # first two episodes share epsilon = epsilon_start, so the schedule ran one
+            # episode behind its own definition for the whole of training.
             epsilon = max(
                 cfg.epsilon_min,
-                cfg.epsilon_start * np.exp(-cfg.epsilon_decay * episode),
+                cfg.epsilon_start * np.exp(-cfg.epsilon_decay * (episode + 1)),
             )
     finally:
         env.close()

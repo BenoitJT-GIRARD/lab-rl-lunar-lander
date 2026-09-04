@@ -27,6 +27,20 @@ ACTION_LABELS: dict[int, str] = {
     3: "right_engine",
 }
 
+#: The checkpoint loaders, by name. A lookup rather than a two-branch conditional: with
+#: ``PPO if algorithm == "ppo" else DQN``, every value that was not exactly ``"ppo"`` --
+#: including a typo -- meant DQN, and the failure surfaced much later as a shape mismatch.
+ALGORITHMS: dict[str, type[BaseAlgorithm]] = {"ppo": PPO, "dqn": DQN}
+
+
+def observation_bounds(env_id: str = LUNAR_LANDER_ID) -> tuple[np.ndarray, np.ndarray]:
+    """The environment's own observation box, as ``(low, high)``."""
+    env = gym.make(env_id)
+    try:
+        return env.observation_space.low.copy(), env.observation_space.high.copy()
+    finally:
+        env.close()
+
 
 @dataclass(slots=True)
 class EpisodeResult:
@@ -53,7 +67,9 @@ class LunarLanderAgent:
         model_path: str | Path,
         algorithm: Literal["ppo", "dqn"] = "ppo",
         env_id: str = LUNAR_LANDER_ID,
-        device: str = "auto",
+        # Inference on a small MLP, one observation at a time: the CPU wins, and the
+        # service has no GPU to depend on. See PPOHyperParameters.device.
+        device: str = "cpu",
     ) -> None:
         self.model_path = Path(model_path)
         if not self.model_path.exists():
@@ -61,10 +77,36 @@ class LunarLanderAgent:
                 f"Model file '{self.model_path}' not found. "
                 "Train the agent first via `python -m astrodynamics.training.train_lunarlander`."
             )
-        loader = PPO if algorithm == "ppo" else DQN
-        self.model: BaseAlgorithm = loader.load(str(self.model_path), device=device)
+        if algorithm not in ALGORITHMS:
+            raise ValueError(f"algorithm must be one of {sorted(ALGORITHMS)}, got {algorithm!r}")
+        self.model: BaseAlgorithm = ALGORITHMS[algorithm].load(str(self.model_path), device=device)
         self.algorithm = algorithm
         self.env_id = env_id
+        self._check_matches_environment()
+
+    def _check_matches_environment(self) -> None:
+        """Refuse a checkpoint that was not trained on this environment.
+
+        The spaces are part of the saved model, and comparing them at load costs one
+        ``gym.make``. Without it a LunarLander service handed a CartPole checkpoint starts
+        cleanly, answers every request, and returns actions drawn from the wrong space --
+        the kind of failure that looks like a bad policy rather than a wrong file.
+        """
+        env = gym.make(self.env_id)
+        try:
+            expected_obs, expected_act = env.observation_space, env.action_space
+        finally:
+            env.close()
+        if self.model.observation_space != expected_obs:
+            raise ValueError(
+                f"'{self.model_path.name}' expects observations in {self.model.observation_space}, "
+                f"but {self.env_id} produces {expected_obs}. Wrong checkpoint for this environment."
+            )
+        if self.model.action_space != expected_act:
+            raise ValueError(
+                f"'{self.model_path.name}' acts in {self.model.action_space}, "
+                f"but {self.env_id} expects {expected_act}."
+            )
 
     def predict(self, observation: np.ndarray | list[float]) -> int:
         """Return the deterministic action for a single observation."""
@@ -127,8 +169,13 @@ class LunarLanderAgent:
 
     @staticmethod
     def reset_environment(seed: int | None = None) -> np.ndarray:
-        """Convenience helper used by the API to expose a fresh state."""
-        env = make_eval_env(seed=seed)
+        """A fresh starting observation, for the API's ``/reset``.
+
+        One reset. ``make_eval_env(seed=...)`` already resets internally, so passing the
+        seed there and resetting again returned the *second* draw of a seeded sequence --
+        an observation that no ``env.reset(seed=n)`` anywhere else in the project produces.
+        """
+        env = make_eval_env()
         try:
             obs, _info = env.reset(seed=seed)
             return obs

@@ -118,7 +118,6 @@ def train_ppo(
         train_env,
         verbose=1,
         tensorboard_log=str(TENSORBOARD_DIR),
-        device="auto",
         **hp.to_kwargs(),
     )
 
@@ -165,7 +164,7 @@ def train_ppo(
     else:
         best_is_final = False
 
-    evaluated = PPO.load(str(kept), device="auto")
+    evaluated = PPO.load(str(kept), device=hp.device)
     metrics = _score(evaluated, algorithm="PPO", hp=hp, best_is_final=best_is_final)
     _write_run_manifest(run, metrics)
     return evaluated, metrics
@@ -183,7 +182,10 @@ def train_dqn(
     run = output or run_dir("dqn", hp.seed)
     run.mkdir(parents=True, exist_ok=True)
 
-    train_env = make_eval_env(seed=hp.seed)
+    # `n_envs` was a declared field nothing read: DQN trained on a bare single environment
+    # while the dataclass said otherwise. Same factory as PPO, so both algorithms see the
+    # same wrappers and the field means what it says.
+    train_env = make_train_env(n_envs=hp.n_envs, seed=hp.seed)
     eval_env = make_eval_env(seed=hp.seed + 1)
 
     model = DQN(
@@ -191,7 +193,6 @@ def train_dqn(
         train_env,
         verbose=1,
         tensorboard_log=str(TENSORBOARD_DIR),
-        device="auto",
         **hp.to_kwargs(),
     )
 
@@ -227,7 +228,7 @@ def train_dqn(
     else:
         best_is_final = False
 
-    evaluated = DQN.load(str(kept), device="auto")
+    evaluated = DQN.load(str(kept), device=hp.device)
     metrics = _score(evaluated, algorithm="DQN", hp=hp, best_is_final=best_is_final)
     _write_run_manifest(run, metrics)
     return evaluated, metrics

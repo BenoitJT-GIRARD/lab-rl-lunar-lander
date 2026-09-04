@@ -1,24 +1,28 @@
-"""FastAPI service exposing the trained Eagle-1 autopilot.
+"""FastAPI service exposing the trained LunarLander autopilot.
 
 Endpoints
 ---------
 ``GET /health``
-    Simple liveness check.
+    Liveness. The process is up. Always 200 while that is true.
+
+``GET /ready``
+    Readiness. A policy is loaded and predictions can be served. 503 otherwise.
 
 ``GET /info``
-    Metadata about the loaded model and environment.
+    What is loaded: version, algorithm, environment, checkpoint, action space.
 
 ``POST /play``
-    Predict a single action for a given observation.
+    The deterministic action for one observation.
 
 ``POST /run``
-    Roll out a full episode server-side and return aggregated metrics.
+    A full episode rolled out server-side, with its trajectory.
 
 ``POST /reset``
-    Sample a fresh starting observation (no action returned).
+    A fresh starting observation.
 
-The RL inference logic lives entirely on the backend so frontends
-(GUI / dashboard) only deal with JSON payloads.
+The inference logic lives in :mod:`astrodynamics.agent`, so the GUI, the notebook and this
+service all predict through the same code. What is here is the boundary: validation, the
+loading contract, and the status codes.
 """
 
 from __future__ import annotations
@@ -29,18 +33,32 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import numpy as np
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
 from astrodynamics import __version__
-from astrodynamics.agent import ACTION_LABELS, LunarLanderAgent
+from astrodynamics.agent import ACTION_LABELS, ALGORITHMS, LunarLanderAgent
+from astrodynamics.agent import observation_bounds as _observation_bounds
 from astrodynamics.utils import DEFAULT_MODEL_PATH
 
-OBSERVATION_DIM: int = 8
+#: Read from ``LunarLander-v3`` itself rather than restated here, so a change of
+#: environment cannot leave the service validating against numbers nobody updated.
+OBSERVATION_LOW, OBSERVATION_HIGH = _observation_bounds()
+OBSERVATION_DIM: int = len(OBSERVATION_LOW)
+
+#: Floating-point slack on those bounds. The environment can return a value a hair outside
+#: its own box after integration, and a service that rejects the environment's own output
+#: is worse than one that accepts a rounding error.
+_TOLERANCE: float = 1e-4
+
+router = APIRouter()
 
 
 class Observation(BaseModel):
-    """Eight-dimensional LunarLander observation vector."""
+    """One LunarLander observation vector."""
 
     state: list[float] = Field(
         ...,
@@ -54,14 +72,31 @@ class Observation(BaseModel):
 
     @field_validator("state")
     @classmethod
-    def _validate_finite(cls, value: list[float]) -> list[float]:
-        if any(np.isnan(v) or np.isinf(v) for v in value):
+    def _validate_within_the_environment(cls, value: list[float]) -> list[float]:
+        """Finite, and inside the box the environment actually produces.
+
+        Checking only for NaN let a caller post an altitude of 900 or a leg-contact flag of
+        1.5. The policy answers anyway -- it is a function, it always answers -- and the
+        action returned means nothing, because no such state exists. The bounds come from
+        the environment's own ``observation_space``.
+        """
+        state = np.asarray(value, dtype=np.float64)
+        if not np.isfinite(state).all():
             raise ValueError("state must contain finite floats only")
+        outside = np.flatnonzero(
+            (state < OBSERVATION_LOW - _TOLERANCE) | (state > OBSERVATION_HIGH + _TOLERANCE)
+        )
+        if outside.size:
+            details = ", ".join(
+                f"state[{i}]={state[i]:g} outside [{OBSERVATION_LOW[i]:g}, {OBSERVATION_HIGH[i]:g}]"
+                for i in outside
+            )
+            raise ValueError(f"state is outside the LunarLander-v3 observation space: {details}")
         return value
 
 
 class ActionResponse(BaseModel):
-    """Response payload for :func:`predict_action`."""
+    """One deterministic action, with the label that names it."""
 
     action: int = Field(..., ge=0, le=3)
     action_label: str
@@ -69,14 +104,19 @@ class ActionResponse(BaseModel):
 
 
 class RunRequest(BaseModel):
-    """Request payload for :func:`run_episode`."""
+    """What to roll out."""
 
     seed: int | None = Field(None, description="Optional seed for reproducibility.")
     max_steps: int = Field(1_000, ge=1, le=2_000)
 
 
 class RunResponse(BaseModel):
-    """Aggregated metrics for a full episode rollout."""
+    """A complete episode.
+
+    ``landed`` is read from the environment's terminal reward, not from the score: the
+    +200 threshold is a property of the task averaged over episodes, and says nothing about
+    any single one.
+    """
 
     total_reward: float
     length: int
@@ -99,47 +139,33 @@ class InfoResponse(BaseModel):
 
 
 def _resolve_model_path() -> Path:
-    """Locate the model file from the environment or fall back to default."""
+    """The checkpoint to serve: ``ASTRODYNAMICS_MODEL_PATH``, or the shipped policy."""
     return Path(os.environ.get("ASTRODYNAMICS_MODEL_PATH", DEFAULT_MODEL_PATH))
 
 
 def _resolve_algorithm() -> str:
-    return os.environ.get("ASTRODYNAMICS_ALGO", "ppo").lower()
+    """The algorithm to load with, refused rather than guessed when it is unknown.
+
+    ``ASTRODYNAMICS_ALGO=xgboost`` used to load the checkpoint as a DQN -- anything that
+    was not exactly ``ppo`` fell through to the other branch -- and then failed somewhere
+    deeper, on a message about tensor shapes.
+    """
+    algorithm = os.environ.get("ASTRODYNAMICS_ALGO", "ppo").lower()
+    if algorithm not in ALGORITHMS:
+        raise ValueError(f"ASTRODYNAMICS_ALGO={algorithm!r} is not one of {sorted(ALGORITHMS)}.")
+    return algorithm
 
 
-def get_agent() -> LunarLanderAgent:
-    """Cached agent dependency (FastAPI handles app-state caching for us)."""
-    return _agent_singleton
+def get_agent(request: Request) -> LunarLanderAgent | None:
+    """The policy this application loaded, or ``None`` when there is none.
 
-
-_agent_singleton: LunarLanderAgent | None = None  # populated in lifespan
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
-    """Eagerly load the policy at boot so the first request is fast."""
-    global _agent_singleton
-    model_path = _resolve_model_path()
-    algorithm = _resolve_algorithm()
-    if model_path.exists():
-        _agent_singleton = LunarLanderAgent(model_path, algorithm=algorithm)  # type: ignore[arg-type]
-    else:
-        _agent_singleton = None
-    try:
-        yield
-    finally:
-        _agent_singleton = None
-
-
-app = FastAPI(
-    title="AstroDynamics Eagle-1 — RL autopilot API",
-    version=__version__,
-    summary=(
-        "Inference service for the LunarLander-v3 autopilot trained for the "
-        "reinforcement-learning mission."
-    ),
-    lifespan=lifespan,
-)
+    Two things were wrong before. The annotation promised a ``LunarLanderAgent`` while the
+    body returned a module-level singleton that is ``None`` until a model is found -- the
+    case every endpoint has to handle. And that singleton was module state, so two
+    applications in one process shared it, and the second to shut down cleared the policy
+    of the first.
+    """
+    return getattr(request.app.state, "agent", None)
 
 
 def _ensure_loaded(agent: LunarLanderAgent | None) -> LunarLanderAgent:
@@ -154,15 +180,31 @@ def _ensure_loaded(agent: LunarLanderAgent | None) -> LunarLanderAgent:
     return agent
 
 
-@app.get("/health", tags=["meta"])
-def health() -> dict[str, Any]:
-    """Liveness probe."""
-    return {"status": "ok", "model_loaded": _agent_singleton is not None}
+@router.get("/health", tags=["meta"])
+def health(request: Request) -> dict[str, Any]:
+    """Liveness: the process is up and serving."""
+    return {"status": "ok", "model_loaded": getattr(request.app.state, "agent", None) is not None}
 
 
-@app.get("/info", response_model=InfoResponse, tags=["meta"])
+@router.get("/ready", tags=["meta"])
+def ready(request: Request, response: Response) -> dict[str, Any]:
+    """Readiness: a policy is loaded and a prediction can be answered.
+
+    Separate from ``/health`` because an orchestrator acts differently on each: liveness
+    failing means restart the process, readiness failing means stop sending it traffic. One
+    endpoint returning 200 with ``model_loaded: false`` conflates them, and a load balancer
+    reading the status code kept routing requests to a service answering 503 to all of them.
+    """
+    agent = getattr(request.app.state, "agent", None)
+    if agent is None:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {"status": "unavailable", "reason": "no model loaded"}
+    return {"status": "ready", "model_path": str(agent.model_path)}
+
+
+@router.get("/info", response_model=InfoResponse, tags=["meta"])
 def info(agent: Annotated[LunarLanderAgent | None, Depends(get_agent)]) -> InfoResponse:
-    """Metadata about the running service."""
+    """What the running service has loaded."""
     agent = _ensure_loaded(agent)
     return InfoResponse(
         model_version=__version__,
@@ -173,12 +215,12 @@ def info(agent: Annotated[LunarLanderAgent | None, Depends(get_agent)]) -> InfoR
     )
 
 
-@app.post("/play", response_model=ActionResponse, tags=["agent"])
+@router.post("/play", response_model=ActionResponse, tags=["agent"])
 def predict_action(
     observation: Observation,
     agent: Annotated[LunarLanderAgent | None, Depends(get_agent)],
 ) -> ActionResponse:
-    """Return the deterministic action for a single observation."""
+    """The deterministic action for a single observation."""
     agent = _ensure_loaded(agent)
     action = agent.predict(observation.state)
     return ActionResponse(
@@ -188,12 +230,12 @@ def predict_action(
     )
 
 
-@app.post("/run", response_model=RunResponse, tags=["agent"])
+@router.post("/run", response_model=RunResponse, tags=["agent"])
 def run_episode(
     request: RunRequest,
     agent: Annotated[LunarLanderAgent | None, Depends(get_agent)],
 ) -> RunResponse:
-    """Run a full episode server-side and return the trajectory."""
+    """Roll out a full episode server-side and return its trajectory."""
     agent = _ensure_loaded(agent)
     result, _frames = agent.play_episode(seed=request.seed, max_steps=request.max_steps)
     return RunResponse(
@@ -206,8 +248,75 @@ def run_episode(
     )
 
 
-@app.post("/reset", response_model=Observation, tags=["agent"])
+@router.post("/reset", response_model=Observation, tags=["agent"])
 def reset_environment(request: ResetRequest) -> Observation:
-    """Sample a fresh starting observation from the environment."""
+    """A fresh starting observation, the same draw as ``env.reset(seed=n)``."""
     obs = LunarLanderAgent.reset_environment(seed=request.seed)
     return Observation(state=obs.tolist())
+
+
+def _json_safe(value: Any) -> Any:
+    """Replace values JSON cannot carry, recursively.
+
+    Rejecting a NaN observation used to crash the service. The validator raised, FastAPI
+    built its 422, and the 422 quotes the offending input -- which was ``nan``, which the
+    JSON encoder refuses. The client got a 500 and no explanation, for an input the service
+    had correctly identified as invalid.
+    """
+    if isinstance(value, float) and not np.isfinite(value):
+        return repr(value)
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+async def _on_invalid_request(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """422 with the reason, even when the reason is a value JSON cannot represent."""
+    return JSONResponse(
+        # 422 spelled out: Starlette renamed the constant, and this handler exists
+        # precisely so a validation failure never becomes a 500.
+        status_code=422,
+        content={"detail": _json_safe(jsonable_encoder(exc.errors()))},
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
+    """Load the policy at boot, so the first request does not pay for it."""
+    model_path = _resolve_model_path()
+    algorithm = _resolve_algorithm()
+    app.state.agent = (
+        LunarLanderAgent(model_path, algorithm=algorithm)  # type: ignore[arg-type]
+        if model_path.exists()
+        else None
+    )
+    try:
+        yield
+    finally:
+        app.state.agent = None
+
+
+def create_app() -> FastAPI:
+    """Build a service instance.
+
+    A factory rather than one module-level object, because the environment is read at boot:
+    a test that wants a service with no model and one that wants a service with a model
+    need two applications, not one global mutated between them. The routes live on a
+    router for the same reason -- decorators bound to a single instance make the factory a
+    lie, and every route on the second instance a 404.
+    """
+    application = FastAPI(
+        title="Eagle-1 — LunarLander autopilot API",
+        version=__version__,
+        summary="Inference service for the LunarLander-v3 autopilot trained in this repository.",
+        lifespan=lifespan,
+    )
+    application.include_router(router)
+    application.add_exception_handler(RequestValidationError, _on_invalid_request)
+    return application
+
+
+#: The instance uvicorn serves: ``uv run uvicorn astrodynamics.api:app``.
+app = create_app()
