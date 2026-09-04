@@ -33,9 +33,7 @@ dependencies = [
     "uvicorn[standard]>=0.32",
     "pydantic>=2.9",
     "httpx>=0.27",
-    # GUI / Dashboard
-    "streamlit>=1.39",
-    "plotly>=5.24",
+    # Video
     "imageio>=2.36",
     "imageio-ffmpeg>=0.5",
     "pillow>=11.0",
@@ -50,6 +48,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The two Streamlit surfaces, kept out of the default install. They are the only
+# consumers of Streamlit, and Streamlit brings pyarrow, which pandas then imports on
+# sight -- and on Windows pyarrow's native libraries fault when they load after Box2D.
+# The tests passed anyway, but every run printed a Windows access violation, which is
+# not something a finished repository should ship. A training and evaluation library
+# has no reason to pull a web UI into every install regardless.
+ui = [
+    "streamlit>=1.39",
+    "plotly>=5.24",
+]
 dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
