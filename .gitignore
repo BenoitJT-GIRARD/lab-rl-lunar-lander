@@ -70,6 +70,10 @@ runs/
 wandb/
 
 # --- Models / artifacts (kept lightweight in repo) ---
+# Per-run artefacts: one directory per algorithm and seed. A run is 148 KB of weights
+# reproducible from its seed and the code, so it stays out of the history; only the
+# shipped policy, models/ppo/best.zip, is tracked.
+models/*/seed-*/
 models/checkpoints/
 # Written when the mission notebook is executed from notebooks/
 notebooks/models/

@@ -1,21 +1,33 @@
-"""Eagle-1 mission — training pipeline for LunarLander-v3.
+"""Training pipeline for LunarLander-v3, PPO and DQN behind one CLI.
 
-The script supports both PPO and DQN through a single CLI.  The default
-configuration follows the SB3 RL Zoo recipe for ``LunarLander-v3`` and is
-expected to comfortably exceed the +200 reward threshold on the 100
-evaluation-episode horizon set by the project brief.
+Each run gets its own directory, ``models/<algo>/seed-<n>/``, holding the checkpoint
+``EvalCallback`` kept (``best.zip``), the state training ended on (``final.zip``) and a
+manifest with the metrics that checkpoint scored. Three things follow from that layout,
+and all three were wrong in the first version.
+
+**Two algorithms cannot overwrite each other.** Both used to point ``EvalCallback`` at
+``models/``, so whichever ran second replaced the other's ``best_model.zip``.
+
+**The best checkpoint is what gets shipped and scored.** The first version evaluated the
+object left in memory when training stopped, and saved it under a name that said ``best``.
+In reinforcement learning the two differ: performance oscillates late in training, and the
+gap is not small. When no evaluation ever improved on the start there is no best
+checkpoint, and the manifest says so rather than passing the final state off as one.
+
+**A model on disk carries the metrics it scored.** They used to be printed and lost.
 
 Usage
 -----
 .. code-block:: powershell
 
-    uv run python -m astrodynamics.training.train_lunarlander \
-        --algo ppo --timesteps 1_000_000 --output models/ppo_lunarlander_best.zip
+    uv run python -m astrodynamics.training.train_lunarlander --algo ppo --seed 42
+    uv run python -m astrodynamics.training.train_lunarlander --algo dqn --timesteps 500_000
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 from dataclasses import asdict
 from pathlib import Path
 
@@ -25,37 +37,78 @@ from stable_baselines3.common.callbacks import (
     CheckpointCallback,
     EvalCallback,
 )
-from stable_baselines3.common.evaluation import evaluate_policy
 
 from astrodynamics.training.callbacks import CsvProgressCallback
 from astrodynamics.training.environments import (
     make_eval_env,
     make_train_env,
 )
+from astrodynamics.training.evaluate import run_episodes, summarise
 from astrodynamics.training.hyperparameters import (
     DQNHyperParameters,
     PPOHyperParameters,
 )
 from astrodynamics.utils import (
-    DEFAULT_MODEL_PATH,
     LOGS_DIR,
-    MODELS_DIR,
     TENSORBOARD_DIR,
-    TRAINING_CURVES_CSV,
     ensure_dirs,
+    run_dir,
     set_global_seed,
 )
+
+#: The evaluation grid every training run is scored on, so two runs are comparable.
+CANONICAL_EVAL_SEED = 2024
+
+
+def _score(model, *, algorithm: str, hp, best_is_final: bool) -> dict:
+    """Evaluate a trained policy the same way for every algorithm.
+
+    Uses the project's own collection rather than `evaluate_policy`, so a training metric
+    and a published metric are computed by the same code on the same seed grid. The first
+    version used one loop here and another in the exporter, and the two disagreed.
+    """
+    records = run_episodes(model, n_episodes=100, seed=CANONICAL_EVAL_SEED)
+    summary = summarise(records)
+    return {
+        "algorithm": algorithm,
+        "seed": hp.seed,
+        "total_timesteps": hp.total_timesteps,
+        "evaluation_seed": CANONICAL_EVAL_SEED,
+        # True when no evaluation ever improved on the start, so `best` and `final` are the
+        # same file. Worth recording: it means the callback never fired usefully.
+        "best_is_final": best_is_final,
+        **summary,
+        "hyperparameters": asdict(hp),
+    }
+
+
+def _write_run_manifest(run: Path, metrics: dict) -> Path:
+    """Persist a run's metrics beside its checkpoints.
+
+    The CLI used to print them and stop there, so a model on disk was attached to nothing.
+    """
+    target = run / "manifest.json"
+    target.write_text(json.dumps(metrics, indent=2) + chr(10), encoding="utf-8")
+    return target
 
 
 def train_ppo(
     hp: PPOHyperParameters | None = None,
-    output: Path = DEFAULT_MODEL_PATH,
+    output: Path | None = None,
     tensorboard_run_name: str = "ppo_lunarlander",
 ) -> tuple[PPO, dict]:
-    """Train a PPO agent end-to-end and return the policy + final metrics."""
+    """Train PPO, keep both checkpoints, and return the **best** one with its metrics.
+
+    ``output`` is the run directory. It holds ``best.zip`` -- the checkpoint
+    ``EvalCallback`` kept -- and ``final.zip``, the state training ended on. The two are
+    not the same policy, and returning the second under the first's name is what the
+    original version did.
+    """
     hp = hp or PPOHyperParameters()
     ensure_dirs()
     set_global_seed(hp.seed)
+    run = output or run_dir("ppo", hp.seed)
+    run.mkdir(parents=True, exist_ok=True)
 
     train_env = make_train_env(n_envs=hp.n_envs, seed=hp.seed)
     eval_env = make_train_env(n_envs=4, seed=hp.seed + 999)
@@ -69,10 +122,11 @@ def train_ppo(
         **hp.to_kwargs(),
     )
 
+    # Its own directory, so a DQN run cannot overwrite a PPO run's best checkpoint.
     eval_callback = EvalCallback(
         eval_env=eval_env,
-        best_model_save_path=str(output.parent),
-        log_path=str(LOGS_DIR / "eval"),
+        best_model_save_path=str(run),
+        log_path=str(LOGS_DIR / "eval" / f"ppo-seed-{hp.seed}"),
         eval_freq=max(10_000 // hp.n_envs, 1),
         n_eval_episodes=20,
         deterministic=True,
@@ -80,10 +134,12 @@ def train_ppo(
     )
     checkpoint_callback = CheckpointCallback(
         save_freq=max(100_000 // hp.n_envs, 1),
-        save_path=str(MODELS_DIR / "checkpoints" / "ppo"),
-        name_prefix="ppo_lunarlander",
+        save_path=str(run / "checkpoints"),
+        name_prefix="ppo",
     )
-    progress_callback = CsvProgressCallback(output_path=TRAINING_CURVES_CSV)
+    # In the run's own directory, like every other artefact it produces. The published
+    # curve under data/ is the retained run's, copied there by scripts/publish_run.py.
+    progress_callback = CsvProgressCallback(output_path=run / "training_curves.csv")
 
     model.learn(
         total_timesteps=hp.total_timesteps,
@@ -92,32 +148,40 @@ def train_ppo(
         progress_bar=False,
     )
 
-    model.save(output)
-    eval_single = make_eval_env(seed=hp.seed + 1)
-    mean_reward, std_reward = evaluate_policy(model, eval_single, n_eval_episodes=100)
-    eval_single.close()
+    model.save(run / "final.zip")
     train_env.close()
     eval_env.close()
 
-    metrics = {
-        "algorithm": "PPO",
-        "mean_reward": float(mean_reward),
-        "std_reward": float(std_reward),
-        "total_timesteps": hp.total_timesteps,
-        "hyperparameters": asdict(hp),
-    }
-    return model, metrics
+    # Evaluate the checkpoint that will be shipped, not the object left in memory.
+    best_path = run / "best_model.zip"
+    if best_path.exists():
+        best_path.replace(run / "best.zip")
+    kept = run / "best.zip"
+    if not kept.exists():
+        # No evaluation ever improved on the start, so there is no best checkpoint. Say so
+        # rather than silently shipping the final model under the other name.
+        (run / "final.zip").replace(kept)
+        best_is_final = True
+    else:
+        best_is_final = False
+
+    evaluated = PPO.load(str(kept), device="auto")
+    metrics = _score(evaluated, algorithm="PPO", hp=hp, best_is_final=best_is_final)
+    _write_run_manifest(run, metrics)
+    return evaluated, metrics
 
 
 def train_dqn(
     hp: DQNHyperParameters | None = None,
-    output: Path = MODELS_DIR / "dqn_lunarlander.zip",
+    output: Path | None = None,
     tensorboard_run_name: str = "dqn_lunarlander",
 ) -> tuple[DQN, dict]:
-    """Train a DQN agent on LunarLander-v3."""
+    """Train DQN, under the same convention as :func:`train_ppo`."""
     hp = hp or DQNHyperParameters()
     ensure_dirs()
     set_global_seed(hp.seed)
+    run = output or run_dir("dqn", hp.seed)
+    run.mkdir(parents=True, exist_ok=True)
 
     train_env = make_eval_env(seed=hp.seed)
     eval_env = make_eval_env(seed=hp.seed + 1)
@@ -133,16 +197,14 @@ def train_dqn(
 
     eval_callback = EvalCallback(
         eval_env=eval_env,
-        best_model_save_path=str(output.parent),
-        log_path=str(LOGS_DIR / "eval_dqn"),
+        best_model_save_path=str(run),
+        log_path=str(LOGS_DIR / "eval" / f"dqn-seed-{hp.seed}"),
         eval_freq=10_000,
         n_eval_episodes=10,
         deterministic=True,
         render=False,
     )
-    progress_callback = CsvProgressCallback(
-        output_path=TRAINING_CURVES_CSV.with_name("training_curves_dqn.csv")
-    )
+    progress_callback = CsvProgressCallback(output_path=run / "training_curves.csv")
 
     model.learn(
         total_timesteps=hp.total_timesteps,
@@ -151,21 +213,24 @@ def train_dqn(
         progress_bar=False,
     )
 
-    model.save(output)
-    eval_single = make_eval_env(seed=hp.seed + 2)
-    mean_reward, std_reward = evaluate_policy(model, eval_single, n_eval_episodes=100)
-    eval_single.close()
+    model.save(run / "final.zip")
     train_env.close()
     eval_env.close()
 
-    metrics = {
-        "algorithm": "DQN",
-        "mean_reward": float(mean_reward),
-        "std_reward": float(std_reward),
-        "total_timesteps": hp.total_timesteps,
-        "hyperparameters": asdict(hp),
-    }
-    return model, metrics
+    best_path = run / "best_model.zip"
+    if best_path.exists():
+        best_path.replace(run / "best.zip")
+    kept = run / "best.zip"
+    if not kept.exists():
+        (run / "final.zip").replace(kept)
+        best_is_final = True
+    else:
+        best_is_final = False
+
+    evaluated = DQN.load(str(kept), device="auto")
+    metrics = _score(evaluated, algorithm="DQN", hp=hp, best_is_final=best_is_final)
+    _write_run_manifest(run, metrics)
+    return evaluated, metrics
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -176,8 +241,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=DEFAULT_MODEL_PATH,
-        help="Path to the saved model (zip).",
+        default=None,
+        help=(
+            "Run directory. Defaults to models/<algo>/seed-<seed>/, chosen after --algo is "
+            "read -- the default used to be the PPO path whatever the algorithm, so a DQN "
+            "run without --output overwrote the PPO artefact."
+        ),
     )
     parser.add_argument("--n-envs", type=int, default=None)
     return parser.parse_args(argv)
@@ -199,10 +268,19 @@ def main(argv: list[str] | None = None) -> None:  # pragma: no cover - CLI helpe
         )
         _, metrics = train_dqn(hp, output=args.output)
 
+    run = args.output or run_dir(args.algo, args.seed)
     print(
         f"\n[{metrics['algorithm']}] mean_reward={metrics['mean_reward']:.2f} "
-        f"+/- {metrics['std_reward']:.2f} on 100 eval episodes."
+        f"+/- {metrics['std_reward']:.2f}, landing rate {metrics['landing_rate']:.0%}, "
+        f"over {int(metrics['n_episodes'])} episodes on evaluation seed "
+        f"{metrics['evaluation_seed']}."
     )
+    if metrics["best_is_final"]:
+        print(
+            "  No evaluation improved on the starting policy, so best.zip is the "
+            "final state. Train longer before reading anything into the score."
+        )
+    print(f"  {run / 'best.zip'}\n  {run / 'manifest.json'}")
 
 
 if __name__ == "__main__":  # pragma: no cover

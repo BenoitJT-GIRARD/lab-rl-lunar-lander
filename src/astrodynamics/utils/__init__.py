@@ -12,6 +12,7 @@ from astrodynamics.utils.paths import (
     TRAINING_CURVES_CSV,
     VIDEOS_DIR,
     ensure_dirs,
+    run_dir,
 )
 from astrodynamics.utils.seeding import set_global_seed
 
@@ -27,5 +28,6 @@ __all__ = [
     "TRAINING_CURVES_CSV",
     "VIDEOS_DIR",
     "ensure_dirs",
+    "run_dir",
     "set_global_seed",
 ]

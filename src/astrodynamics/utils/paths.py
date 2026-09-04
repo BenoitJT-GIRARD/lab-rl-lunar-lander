@@ -15,7 +15,21 @@ VIDEOS_DIR: Path = ROOT_DIR / "videos"
 NOTEBOOKS_DIR: Path = ROOT_DIR / "notebooks"
 TENSORBOARD_DIR: Path = LOGS_DIR / "tensorboard"
 
-DEFAULT_MODEL_PATH: Path = MODELS_DIR / "ppo_lunarlander_best.zip"
+#: The shipped policy: the best checkpoint of the retained PPO run.
+#:
+#: One directory per algorithm, and `best` and `final` under different names. The first
+#: version pointed `EvalCallback` at `models/` for both algorithms, so each overwrote the
+#: other's `best_model.zip`, then saved the *last* model under a filename that said `best`
+#: -- and evaluated that. In reinforcement learning the two differ, because performance
+#: oscillates at the end of training.
+DEFAULT_MODEL_PATH: Path = MODELS_DIR / "ppo" / "best.zip"
+
+
+def run_dir(algorithm: str, seed: int) -> Path:
+    """Where one training run keeps its checkpoints and its manifest."""
+    return MODELS_DIR / algorithm.lower() / f"seed-{seed}"
+
+
 EVALUATION_CSV: Path = DATA_DIR / "evaluation_episodes.csv"
 TRAINING_CURVES_CSV: Path = DATA_DIR / "training_curves.csv"
 

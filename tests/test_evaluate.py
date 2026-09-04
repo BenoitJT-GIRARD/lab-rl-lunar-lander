@@ -136,7 +136,7 @@ def test_the_manifest_names_the_artefact_and_not_the_machine(tmp_path: Path) -> 
     """The first version published an absolute path to the author's own working folder."""
     output = write_manifest(
         tmp_path / "manifest.json",
-        model_path=Path("models/ppo_lunarlander_best.zip"),
+        model_path=Path("models/ppo/best.zip"),
         algorithm="PPO",
         seeds=[2024, 7],
         n_episodes=100,
