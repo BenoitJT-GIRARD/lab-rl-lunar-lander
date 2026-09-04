@@ -32,11 +32,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from stable_baselines3 import DQN, PPO
-from stable_baselines3.common.callbacks import (
-    CallbackList,
-    CheckpointCallback,
-    EvalCallback,
-)
+from stable_baselines3.common.callbacks import CallbackList, EvalCallback
 
 from rl_lander.training.callbacks import CsvProgressCallback
 from rl_lander.training.environments import (
@@ -88,7 +84,7 @@ def _write_run_manifest(run: Path, metrics: dict) -> Path:
     The CLI used to print them and stop there, so a model on disk was attached to nothing.
     """
     target = run / "manifest.json"
-    target.write_text(json.dumps(metrics, indent=2) + chr(10), encoding="utf-8")
+    target.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
     return target
 
 
@@ -102,7 +98,9 @@ def train_ppo(
     ``output`` is the run directory. It holds ``best.zip`` -- the checkpoint
     ``EvalCallback`` kept -- and ``final.zip``, the state training ended on. The two are
     not the same policy, and returning the second under the first's name is what the
-    original version did.
+    original version did. When no evaluation ever improved on the start there is no best
+    checkpoint: the final state becomes ``best.zip``, no ``final.zip`` is left beside it,
+    and the manifest records ``best_is_final`` so nothing downstream has to guess.
     """
     hp = hp or PPOHyperParameters()
     ensure_dirs()
@@ -131,18 +129,13 @@ def train_ppo(
         deterministic=True,
         render=False,
     )
-    checkpoint_callback = CheckpointCallback(
-        save_freq=max(100_000 // hp.n_envs, 1),
-        save_path=str(run / "checkpoints"),
-        name_prefix="ppo",
-    )
     # In the run's own directory, like every other artefact it produces. The published
     # curve under data/ is the retained run's, copied there by scripts/publish_run.py.
     progress_callback = CsvProgressCallback(output_path=run / "training_curves.csv")
 
     model.learn(
         total_timesteps=hp.total_timesteps,
-        callback=CallbackList([eval_callback, checkpoint_callback, progress_callback]),
+        callback=CallbackList([eval_callback, progress_callback]),
         tb_log_name=tensorboard_run_name,
         progress_bar=False,
     )

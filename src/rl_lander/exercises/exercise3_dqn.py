@@ -16,7 +16,6 @@ import random
 from collections import deque
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import gymnasium as gym
 import numpy as np
@@ -233,14 +232,12 @@ class SB3DQNConfig:
 def train_sb3_dqn(
     env_id: str = "CartPole-v1",
     config: SB3DQNConfig | None = None,
-    save_path: str | Path | None = None,
-    tensorboard_log: str | Path | None = None,
 ) -> tuple[SB3DQN, dict]:
-    """Train CartPole DQN with Stable-Baselines3.
+    """The same agent as the manual loop, with the plumbing delegated to the library.
 
-    The function mirrors the manual loop above but offloads the training
-    plumbing to SB3, evaluates the trained policy on 100 episodes and
-    optionally persists the model to ``save_path``.
+    Returns the model and its score over 100 evaluation episodes. Nothing is written to
+    disk: this is the comparison half of the exercise, and the mission's own training
+    pipeline is what persists policies.
     """
     cfg = config or SB3DQNConfig()
     env = gym.make(env_id)
@@ -257,14 +254,10 @@ def train_sb3_dqn(
         exploration_final_eps=cfg.exploration_final_eps,
         seed=cfg.seed,
         verbose=0,
-        tensorboard_log=str(tensorboard_log) if tensorboard_log else None,
         device="auto",
     )
     model.learn(total_timesteps=cfg.total_timesteps, progress_bar=False)
     mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
-    if save_path is not None:
-        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-        model.save(str(save_path))
     env.close()
     return model, {"mean_reward": float(mean_reward), "std_reward": float(std_reward)}
 
