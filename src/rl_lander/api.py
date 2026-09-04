@@ -1,4 +1,4 @@
-"""FastAPI service exposing the trained LunarLander autopilot.
+"""FastAPI service exposing the trained autopilot.
 
 Endpoints
 ---------
@@ -20,7 +20,7 @@ Endpoints
 ``POST /reset``
     A fresh starting observation.
 
-The inference logic lives in :mod:`astrodynamics.agent`, so the GUI, the notebook and this
+The inference logic lives in :mod:`rl_lander.agent`, so the GUI, the notebook and this
 service all predict through the same code. What is here is the boundary: validation, the
 loading contract, and the status codes.
 """
@@ -39,10 +39,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
-from astrodynamics import __version__
-from astrodynamics.agent import ACTION_LABELS, ALGORITHMS, LunarLanderAgent
-from astrodynamics.agent import observation_bounds as _observation_bounds
-from astrodynamics.utils import DEFAULT_MODEL_PATH
+from rl_lander import __version__
+from rl_lander.agent import ACTION_LABELS, ALGORITHMS, LunarLanderAgent
+from rl_lander.agent import observation_bounds as _observation_bounds
+from rl_lander.utils import DEFAULT_MODEL_PATH
 
 #: Read from ``LunarLander-v3`` itself rather than restated here, so a change of
 #: environment cannot leave the service validating against numbers nobody updated.
@@ -139,20 +139,20 @@ class InfoResponse(BaseModel):
 
 
 def _resolve_model_path() -> Path:
-    """The checkpoint to serve: ``ASTRODYNAMICS_MODEL_PATH``, or the shipped policy."""
-    return Path(os.environ.get("ASTRODYNAMICS_MODEL_PATH", DEFAULT_MODEL_PATH))
+    """The checkpoint to serve: ``RL_LANDER_MODEL_PATH``, or the shipped policy."""
+    return Path(os.environ.get("RL_LANDER_MODEL_PATH", DEFAULT_MODEL_PATH))
 
 
 def _resolve_algorithm() -> str:
     """The algorithm to load with, refused rather than guessed when it is unknown.
 
-    ``ASTRODYNAMICS_ALGO=xgboost`` used to load the checkpoint as a DQN -- anything that
+    ``RL_LANDER_ALGO=xgboost`` used to load the checkpoint as a DQN -- anything that
     was not exactly ``ppo`` fell through to the other branch -- and then failed somewhere
     deeper, on a message about tensor shapes.
     """
-    algorithm = os.environ.get("ASTRODYNAMICS_ALGO", "ppo").lower()
+    algorithm = os.environ.get("RL_LANDER_ALGO", "ppo").lower()
     if algorithm not in ALGORITHMS:
-        raise ValueError(f"ASTRODYNAMICS_ALGO={algorithm!r} is not one of {sorted(ALGORITHMS)}.")
+        raise ValueError(f"RL_LANDER_ALGO={algorithm!r} is not one of {sorted(ALGORITHMS)}.")
     return algorithm
 
 
@@ -173,7 +173,7 @@ def _ensure_loaded(agent: LunarLanderAgent | None) -> LunarLanderAgent:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(
-                "No trained model is available. Set ASTRODYNAMICS_MODEL_PATH "
+                "No trained model is available. Set RL_LANDER_MODEL_PATH "
                 "to a valid '.zip' checkpoint."
             ),
         )
@@ -308,7 +308,7 @@ def create_app() -> FastAPI:
     lie, and every route on the second instance a 404.
     """
     application = FastAPI(
-        title="Eagle-1 — LunarLander autopilot API",
+        title="LunarLander autopilot API",
         version=__version__,
         summary="Inference service for the LunarLander-v3 autopilot trained in this repository.",
         lifespan=lifespan,
@@ -318,5 +318,5 @@ def create_app() -> FastAPI:
     return application
 
 
-#: The instance uvicorn serves: ``uv run uvicorn astrodynamics.api:app``.
+#: The instance uvicorn serves: ``uv run uvicorn rl_lander.api:app``.
 app = create_app()

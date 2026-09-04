@@ -14,7 +14,7 @@ from pathlib import Path
 
 def _find_root() -> Path:
     """The repository root: an explicit override, the marker file, or the process's cwd."""
-    override = os.environ.get("ASTRODYNAMICS_ROOT")
+    override = os.environ.get("RL_LANDER_ROOT")
     if override:
         return Path(override).resolve()
     here = Path(__file__).resolve()
@@ -26,9 +26,9 @@ def _find_root() -> Path:
     return Path.cwd().resolve()
 
 
-#: Set ``ASTRODYNAMICS_ROOT`` to write artefacts somewhere other than the checkout.
+#: Set ``RL_LANDER_ROOT`` to write artefacts somewhere other than the checkout.
 ROOT_DIR: Path = _find_root()
-SRC_DIR: Path = ROOT_DIR / "src" / "astrodynamics"
+SRC_DIR: Path = ROOT_DIR / "src" / "rl_lander"
 
 MODELS_DIR: Path = ROOT_DIR / "models"
 DATA_DIR: Path = ROOT_DIR / "data"

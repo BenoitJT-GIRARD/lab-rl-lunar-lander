@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from astrodynamics.artifacts import EVALUATION_COLUMNS, read_table
+from rl_lander.artifacts import EVALUATION_COLUMNS, read_table
 
 
 def _write(path: Path, frame: pd.DataFrame) -> Path:

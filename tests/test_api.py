@@ -17,8 +17,8 @@ import pytest
 from fastapi.testclient import TestClient
 from stable_baselines3 import PPO
 
-from astrodynamics.agent import LunarLanderAgent, observation_bounds
-from astrodynamics.training.environments import LUNAR_LANDER_ID, make_eval_env
+from rl_lander.agent import LunarLanderAgent, observation_bounds
+from rl_lander.training.environments import LUNAR_LANDER_ID, make_eval_env
 
 #: A state the environment could actually produce: hovering, upright, legs free.
 VALID_STATE = [0.0, 1.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -40,9 +40,9 @@ def lander_checkpoint(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 @pytest.fixture(scope="module")
 def client(lander_checkpoint: Path):
-    os.environ["ASTRODYNAMICS_MODEL_PATH"] = str(lander_checkpoint)
-    os.environ["ASTRODYNAMICS_ALGO"] = "ppo"
-    from astrodynamics.api import create_app
+    os.environ["RL_LANDER_MODEL_PATH"] = str(lander_checkpoint)
+    os.environ["RL_LANDER_ALGO"] = "ppo"
+    from rl_lander.api import create_app
 
     with TestClient(create_app()) as test_client:
         yield test_client
@@ -55,9 +55,9 @@ def client_without_model(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     Its own fixture, because the interesting behaviour of this API is what it does when the
     model is missing.
     """
-    monkeypatch.setenv("ASTRODYNAMICS_MODEL_PATH", str(tmp_path / "absent.zip"))
-    monkeypatch.setenv("ASTRODYNAMICS_ALGO", "ppo")
-    from astrodynamics.api import create_app
+    monkeypatch.setenv("RL_LANDER_MODEL_PATH", str(tmp_path / "absent.zip"))
+    monkeypatch.setenv("RL_LANDER_ALGO", "ppo")
+    from rl_lander.api import create_app
 
     with TestClient(create_app()) as test_client:
         yield test_client
@@ -184,9 +184,9 @@ def test_reset_is_the_same_draw_as_a_plain_env_reset(client: TestClient) -> None
 def test_an_unknown_algorithm_is_refused_rather_than_read_as_dqn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from astrodynamics.api import _resolve_algorithm
+    from rl_lander.api import _resolve_algorithm
 
-    monkeypatch.setenv("ASTRODYNAMICS_ALGO", "xgboost")
+    monkeypatch.setenv("RL_LANDER_ALGO", "xgboost")
     with pytest.raises(ValueError, match="not one of"):
         _resolve_algorithm()
 

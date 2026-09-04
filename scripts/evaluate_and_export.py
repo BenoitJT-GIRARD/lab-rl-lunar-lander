@@ -29,7 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from stable_baselines3 import PPO  # noqa: E402
 
-from astrodynamics.training.evaluate import (  # noqa: E402
+from rl_lander.training.evaluate import (  # noqa: E402
     SOLVED_THRESHOLD,
     evaluate_seeds,
     run_episodes,
@@ -37,7 +37,7 @@ from astrodynamics.training.evaluate import (  # noqa: E402
     write_csv,
     write_manifest,
 )
-from astrodynamics.utils import DATA_DIR, DEFAULT_MODEL_PATH, ensure_dirs  # noqa: E402
+from rl_lander.utils import DATA_DIR, DEFAULT_MODEL_PATH, ensure_dirs  # noqa: E402
 
 #: The grid whose episodes are exported. The first entry is the canonical collection: the
 #: CSV, the summary and the dashboard all read it.
@@ -60,7 +60,7 @@ def main() -> None:
     if not args.model.exists():
         raise SystemExit(
             f"Model '{args.model}' not found. Train it first via "
-            "`uv run python -m astrodynamics.training.train_lunarlander`."
+            "`uv run python -m rl_lander.training.train_lunarlander`."
         )
 
     ensure_dirs()

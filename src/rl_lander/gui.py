@@ -21,11 +21,11 @@ import imageio.v2 as imageio
 import numpy as np
 import streamlit as st
 
-from astrodynamics.agent import ACTION_LABELS, LunarLanderAgent
-from astrodynamics.replay import replay_actions, replay_matches
-from astrodynamics.utils import DEFAULT_MODEL_PATH
+from rl_lander.agent import ACTION_LABELS, LunarLanderAgent
+from rl_lander.replay import replay_actions, replay_matches
+from rl_lander.utils import DEFAULT_MODEL_PATH
 
-DEFAULT_API_URL = os.environ.get("ASTRODYNAMICS_API_URL", "http://127.0.0.1:8000")
+DEFAULT_API_URL = os.environ.get("RL_LANDER_API_URL", "http://127.0.0.1:8000")
 
 
 @st.cache_resource(show_spinner=False)
@@ -111,8 +111,8 @@ def _metrics_panel(payload: dict[str, Any], source: str) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Eagle-1 — Cockpit", page_icon=":rocket:", layout="wide")
-    st.title(":rocket: Eagle-1 — Lunar landing cockpit")
+    st.set_page_config(page_title="Cockpit", page_icon=":rocket:", layout="wide")
+    st.title(":rocket: Lunar landing cockpit")
     st.caption(
         "One episode of the trained autopilot. Inference runs on the FastAPI service when "
         "it is reachable, and on the local checkpoint otherwise."

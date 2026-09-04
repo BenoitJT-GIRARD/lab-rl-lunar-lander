@@ -12,7 +12,7 @@ import pytest
 import torch
 from torch import optim
 
-from astrodynamics.exercises.exercise3_dqn import (
+from rl_lander.exercises.exercise3_dqn import (
     DQN,
     DQNConfig,
     ReplayBuffer,

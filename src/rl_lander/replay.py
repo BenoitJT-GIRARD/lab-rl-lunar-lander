@@ -14,7 +14,7 @@ from collections.abc import Sequence
 import gymnasium as gym
 import numpy as np
 
-from astrodynamics.training.environments import LUNAR_LANDER_ID
+from rl_lander.training.environments import LUNAR_LANDER_ID
 
 #: How far a replayed reward may drift from the reported one before the two are called
 #: different episodes. Box2D is deterministic given a seed, so anything above float noise is

@@ -15,8 +15,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from astrodynamics.artifacts import CURVE_COLUMNS, EVALUATION_COLUMNS, read_table
-from astrodynamics.utils import EVALUATION_CSV, TRAINING_CURVES_CSV
+from rl_lander.artifacts import CURVE_COLUMNS, EVALUATION_COLUMNS, read_table
+from rl_lander.utils import EVALUATION_CSV, TRAINING_CURVES_CSV
 
 OUTCOME_COLOURS = {"landed": "#1f9d55", "did not land": "#c81e1e"}
 
@@ -172,11 +172,11 @@ def _engine_section(frame: pd.DataFrame) -> None:
 
 def main() -> None:
     st.set_page_config(
-        page_title="Eagle-1 — Performance dashboard",
+        page_title="Performance dashboard",
         page_icon=":bar_chart:",
         layout="wide",
     )
-    st.title(":bar_chart: Eagle-1 — Performance dashboard")
+    st.title(":bar_chart: Performance dashboard")
     st.caption("Training and evaluation of the autopilot. The sidebar filters every panel.")
 
     curves, curves_problem = read_table(TRAINING_CURVES_CSV, CURVE_COLUMNS)
@@ -185,7 +185,7 @@ def main() -> None:
     if curves is None and episodes is None:
         st.error(
             f"Nothing to show. {curves_problem} {episodes_problem}\n\n"
-            "Train with `uv run python -m astrodynamics.training.train_lunarlander`, "
+            "Train with `uv run python -m rl_lander.training.train_lunarlander`, "
             "then export with `uv run python scripts/evaluate_and_export.py`."
         )
         return

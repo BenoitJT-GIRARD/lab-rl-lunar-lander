@@ -8,7 +8,7 @@ import gymnasium as gym
 import pytest
 from stable_baselines3 import PPO
 
-from astrodynamics.training.environments import LUNAR_LANDER_ID
+from rl_lander.training.environments import LUNAR_LANDER_ID
 
 
 @pytest.fixture(scope="session")
@@ -38,6 +38,6 @@ def _hash_seed_notice_is_not_for_the_suite() -> None:
     still raised, still an error, and `tests/test_seeding.py` asserts exactly that -- without
     every test that seeds anything failing on a message aimed at a person.
     """
-    from astrodynamics.utils import seeding
+    from rl_lander.utils import seeding
 
     seeding._HASH_SEED_REPORTED = True

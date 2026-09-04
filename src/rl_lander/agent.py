@@ -18,7 +18,7 @@ import numpy as np
 from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.base_class import BaseAlgorithm
 
-from astrodynamics.training.environments import LUNAR_LANDER_ID, make_eval_env
+from rl_lander.training.environments import LUNAR_LANDER_ID, make_eval_env
 
 ACTION_LABELS: dict[int, str] = {
     0: "noop",
@@ -75,7 +75,7 @@ class LunarLanderAgent:
         if not self.model_path.exists():
             raise FileNotFoundError(
                 f"Model file '{self.model_path}' not found. "
-                "Train the agent first via `python -m astrodynamics.training.train_lunarlander`."
+                "Train the agent first via `python -m rl_lander.training.train_lunarlander`."
             )
         if algorithm not in ALGORITHMS:
             raise ValueError(f"algorithm must be one of {sorted(ALGORITHMS)}, got {algorithm!r}")

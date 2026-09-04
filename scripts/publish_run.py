@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from astrodynamics.utils import DATA_DIR, MODELS_DIR, TRAINING_CURVES_CSV  # noqa: E402
+from rl_lander.utils import DATA_DIR, MODELS_DIR, TRAINING_CURVES_CSV  # noqa: E402
 
 REQUIRED = ("best.zip", "manifest.json")
 
@@ -34,7 +34,7 @@ def publish(run: Path) -> list[Path]:
     if missing:
         raise SystemExit(
             f"'{run}' is not a finished run: {', '.join(missing)} missing. Train it with "
-            "`uv run python -m astrodynamics.training.train_lunarlander`."
+            "`uv run python -m rl_lander.training.train_lunarlander`."
         )
 
     manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))

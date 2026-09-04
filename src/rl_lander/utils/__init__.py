@@ -1,6 +1,6 @@
-"""Utility helpers shared across the AstroDynamics package."""
+"""Paths and seeding, shared across the package."""
 
-from astrodynamics.utils.paths import (
+from rl_lander.utils.paths import (
     DATA_DIR,
     DEFAULT_MODEL_PATH,
     EVALUATION_CSV,
@@ -14,7 +14,7 @@ from astrodynamics.utils.paths import (
     ensure_dirs,
     run_dir,
 )
-from astrodynamics.utils.seeding import set_global_seed
+from rl_lander.utils.seeding import set_global_seed
 
 __all__ = [
     "DATA_DIR",

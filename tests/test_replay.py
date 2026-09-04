@@ -10,8 +10,8 @@ from pathlib import Path
 
 import numpy as np
 
-from astrodynamics.agent import LunarLanderAgent
-from astrodynamics.replay import replay_actions, replay_matches
+from rl_lander.agent import LunarLanderAgent
+from rl_lander.replay import replay_actions, replay_matches
 
 
 def test_a_replay_reproduces_the_episode_it_replays(untrained_checkpoint: Path) -> None:

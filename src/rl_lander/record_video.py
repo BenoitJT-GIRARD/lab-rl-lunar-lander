@@ -25,8 +25,8 @@ from pathlib import Path
 import imageio.v2 as imageio
 import numpy as np
 
-from astrodynamics.agent import LunarLanderAgent
-from astrodynamics.utils import DEFAULT_MODEL_PATH, VIDEOS_DIR, ensure_dirs
+from rl_lander.agent import LunarLanderAgent
+from rl_lander.utils import DEFAULT_MODEL_PATH, VIDEOS_DIR, ensure_dirs
 
 
 @dataclass(slots=True)
@@ -85,7 +85,7 @@ def _assemble(takes: list[Take], fade_length: int) -> list[np.ndarray]:
 
 def record_landing(
     model_path: Path = DEFAULT_MODEL_PATH,
-    output: Path = VIDEOS_DIR / "eagle1_landing.mp4",
+    output: Path = VIDEOS_DIR / "landing.mp4",
     max_attempts: int = 16,
     target_min_seconds: float = 22.0,
     target_max_seconds: float = 30.0,
@@ -176,7 +176,7 @@ def record_landing(
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Record a LunarLander landing video")
     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL_PATH)
-    parser.add_argument("--output", type=Path, default=VIDEOS_DIR / "eagle1_landing.mp4")
+    parser.add_argument("--output", type=Path, default=VIDEOS_DIR / "landing.mp4")
     parser.add_argument("--max-attempts", type=int, default=16)
     parser.add_argument("--seed-start", type=int, default=0)
     parser.add_argument("--min-landings", type=int, default=2)

@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from astrodynamics.training.hyperparameters import DQNHyperParameters, PPOHyperParameters
-from astrodynamics.training.train_lunarlander import _parse_args, train_dqn, train_ppo
-from astrodynamics.utils import run_dir
+from rl_lander.training.hyperparameters import DQNHyperParameters, PPOHyperParameters
+from rl_lander.training.train_lunarlander import _parse_args, train_dqn, train_ppo
+from rl_lander.utils import run_dir
 
 
 def test_each_algorithm_and_seed_gets_its_own_directory() -> None:

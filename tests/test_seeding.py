@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 import torch
 
-from astrodynamics.utils import seeding
-from astrodynamics.utils.seeding import set_global_seed
+from rl_lander.utils import seeding
+from rl_lander.utils.seeding import set_global_seed
 
 
 def test_it_seeds_python_numpy_and_torch_together() -> None:

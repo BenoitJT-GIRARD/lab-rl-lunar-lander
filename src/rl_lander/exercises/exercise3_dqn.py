@@ -26,7 +26,7 @@ from stable_baselines3 import DQN as SB3DQN
 from stable_baselines3.common.evaluation import evaluate_policy
 from torch import nn, optim
 
-from astrodynamics.utils import set_global_seed
+from rl_lander.utils import set_global_seed
 
 
 @dataclass(slots=True)

@@ -5,11 +5,11 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from astrodynamics.exercises.exercise1_cartpole import (
+from rl_lander.exercises.exercise1_cartpole import (
     describe_spaces,
     run_random_policy,
 )
-from astrodynamics.exercises.exercise2_qlearning import (
+from rl_lander.exercises.exercise2_qlearning import (
     QLearningConfig,
     evaluate,
     train,

@@ -34,12 +34,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from astrodynamics.training.hyperparameters import (  # noqa: E402
+from rl_lander.training.hyperparameters import (  # noqa: E402
     DQNHyperParameters,
     PPOHyperParameters,
 )
-from astrodynamics.training.train_lunarlander import train_dqn, train_ppo  # noqa: E402
-from astrodynamics.utils import run_dir  # noqa: E402
+from rl_lander.training.train_lunarlander import train_dqn, train_ppo  # noqa: E402
+from rl_lander.utils import run_dir  # noqa: E402
 
 #: The seeds whose spread is published as the method's variability.
 BASELINE_SEEDS = (42, 43, 44, 45, 46)

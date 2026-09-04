@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 from stable_baselines3 import PPO
 
-from astrodynamics.training.environments import make_eval_env
-from astrodynamics.training.evaluate import (
+from rl_lander.training.environments import make_eval_env
+from rl_lander.training.evaluate import (
     FIELDS,
     EpisodeRecord,
     evaluate_seeds,

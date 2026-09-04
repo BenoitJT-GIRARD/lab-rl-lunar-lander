@@ -14,10 +14,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from astrodynamics.record_video import Take, _assemble, _crossfade, record_landing
-from astrodynamics.replay import replay_matches
-from astrodynamics.training.evaluate import SOLVED_THRESHOLD
-from astrodynamics.utils import DATA_DIR, DEFAULT_MODEL_PATH, ROOT_DIR
+from rl_lander.record_video import Take, _assemble, _crossfade, record_landing
+from rl_lander.replay import replay_matches
+from rl_lander.training.evaluate import SOLVED_THRESHOLD
+from rl_lander.utils import DATA_DIR, DEFAULT_MODEL_PATH, ROOT_DIR
 
 FRAME_SHAPE = (4, 6, 3)
 

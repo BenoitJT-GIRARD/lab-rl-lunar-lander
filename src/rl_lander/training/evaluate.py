@@ -33,8 +33,8 @@ from pathlib import Path
 import numpy as np
 from stable_baselines3.common.base_class import BaseAlgorithm
 
-from astrodynamics.training.environments import make_eval_env
-from astrodynamics.utils import EVALUATION_CSV
+from rl_lander.training.environments import make_eval_env
+from rl_lander.utils import EVALUATION_CSV
 
 #: Discrete actions of ``LunarLander-v3``: 0 idle, 1 left engine, 2 main engine, 3 right.
 MAIN_ENGINE = 2

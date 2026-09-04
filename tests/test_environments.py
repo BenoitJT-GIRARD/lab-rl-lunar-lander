@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from astrodynamics.training.environments import (
+from rl_lander.training.environments import (
     LUNAR_LANDER_ID,
     make_eval_env,
     make_train_env,

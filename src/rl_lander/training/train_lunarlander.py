@@ -20,8 +20,8 @@ Usage
 -----
 .. code-block:: powershell
 
-    uv run python -m astrodynamics.training.train_lunarlander --algo ppo --seed 42
-    uv run python -m astrodynamics.training.train_lunarlander --algo dqn --timesteps 500_000
+    uv run python -m rl_lander.training.train_lunarlander --algo ppo --seed 42
+    uv run python -m rl_lander.training.train_lunarlander --algo dqn --timesteps 500_000
 """
 
 from __future__ import annotations
@@ -38,17 +38,17 @@ from stable_baselines3.common.callbacks import (
     EvalCallback,
 )
 
-from astrodynamics.training.callbacks import CsvProgressCallback
-from astrodynamics.training.environments import (
+from rl_lander.training.callbacks import CsvProgressCallback
+from rl_lander.training.environments import (
     make_eval_env,
     make_train_env,
 )
-from astrodynamics.training.evaluate import run_episodes, summarise
-from astrodynamics.training.hyperparameters import (
+from rl_lander.training.evaluate import run_episodes, summarise
+from rl_lander.training.hyperparameters import (
     DQNHyperParameters,
     PPOHyperParameters,
 )
-from astrodynamics.utils import (
+from rl_lander.utils import (
     LOGS_DIR,
     TENSORBOARD_DIR,
     ensure_dirs,
@@ -235,7 +235,7 @@ def train_dqn(
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Eagle-1 LunarLander training")
+    parser = argparse.ArgumentParser(description="LunarLander training")
     parser.add_argument("--algo", choices=["ppo", "dqn"], default="ppo")
     parser.add_argument("--timesteps", type=int, default=None)
     parser.add_argument("--seed", type=int, default=42)

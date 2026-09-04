@@ -1,17 +1,17 @@
-"""Training pipeline for the Eagle-1 mission (LunarLander-v3)."""
+"""Training pipeline for the mission (LunarLander-v3)."""
 
-from astrodynamics.training.environments import (
+from rl_lander.training.environments import (
     LUNAR_LANDER_ID,
     make_eval_env,
     make_train_env,
 )
-from astrodynamics.training.evaluate import (
+from rl_lander.training.evaluate import (
     EpisodeRecord,
     run_episodes,
     summarise,
     write_csv,
 )
-from astrodynamics.training.hyperparameters import (
+from rl_lander.training.hyperparameters import (
     DQNHyperParameters,
     PPOHyperParameters,
 )

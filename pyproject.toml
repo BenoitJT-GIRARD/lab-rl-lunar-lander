@@ -1,7 +1,7 @@
 [project]
-name = "astrodynamics"
+name = "rl_lander"
 version = "0.1.0"
-description = "AstroDynamics Eagle-1: Reinforcement Learning agent for autonomous lunar landing"
+description = "Reinforcement-learning autopilot for Gymnasium LunarLander-v3"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 license = { text = "MIT" }
@@ -100,7 +100,7 @@ torch = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/astrodynamics"]
+packages = ["src/rl_lander"]
 
 [tool.ruff]
 line-length = 100
@@ -151,7 +151,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["src/astrodynamics"]
+source = ["src/rl_lander"]
 branch = true
 
 [tool.coverage.report]
