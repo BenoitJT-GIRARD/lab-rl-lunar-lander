@@ -25,3 +25,19 @@ def untrained_checkpoint(tmp_path_factory: pytest.TempPathFactory) -> Path:
     model.save(path)
     env.close()
     return path
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _hash_seed_notice_is_not_for_the_suite() -> None:
+    """Silence the PYTHONHASHSEED notice for the suite, and only for the suite.
+
+    `set_global_seed` warns once per process when the variable was absent at interpreter
+    start, because it can then only affect subprocesses. That is a true and useful notice
+    for someone launching a training run; the test suite is not a launcher, and pytest does
+    not set the variable. Marking it as already given here keeps the warning honest -- it is
+    still raised, still an error, and `tests/test_seeding.py` asserts exactly that -- without
+    every test that seeds anything failing on a message aimed at a person.
+    """
+    from astrodynamics.utils import seeding
+
+    seeding._HASH_SEED_REPORTED = True

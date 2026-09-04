@@ -11,50 +11,14 @@ the engine analysis, so two panels on one screen described two different populat
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from astrodynamics.artifacts import CURVE_COLUMNS, EVALUATION_COLUMNS, read_table
 from astrodynamics.utils import EVALUATION_CSV, TRAINING_CURVES_CSV
 
-#: What the evaluation export writes. A missing column means the CSV predates the current
-#: exporter, and saying so beats a KeyError halfway down the page.
-REQUIRED_EVALUATION_COLUMNS = (
-    "episode",
-    "seed",
-    "total_reward",
-    "length",
-    "landed",
-    "meets_threshold",
-    "final_x",
-    "final_y",
-    "main_engine_firings",
-    "side_engine_firings",
-)
-REQUIRED_CURVE_COLUMNS = ("timesteps", "ep_rew_mean", "ep_rew_std")
-
 OUTCOME_COLOURS = {"landed": "#1f9d55", "did not land": "#c81e1e"}
-
-
-def _read_csv(path: Path, required: tuple[str, ...]) -> tuple[pd.DataFrame | None, str | None]:
-    """Read a CSV and check its columns. Returns ``(frame, problem)``."""
-    if not path.exists():
-        return None, f"`{path.name}` not found."
-    try:
-        frame = pd.read_csv(path)
-    except (pd.errors.EmptyDataError, pd.errors.ParserError) as exc:
-        return None, f"`{path.name}` could not be read: {exc}"
-    if frame.empty:
-        return None, f"`{path.name}` is empty."
-    missing = [column for column in required if column not in frame.columns]
-    if missing:
-        return None, (
-            f"`{path.name}` is missing {', '.join(missing)}. It was probably written by an "
-            "older version of `scripts/evaluate_and_export.py`; re-run it."
-        )
-    return frame, None
 
 
 def _with_outcome(frame: pd.DataFrame) -> pd.DataFrame:
@@ -215,8 +179,8 @@ def main() -> None:
     st.title(":bar_chart: Eagle-1 — Performance dashboard")
     st.caption("Training and evaluation of the autopilot. The sidebar filters every panel.")
 
-    curves, curves_problem = _read_csv(TRAINING_CURVES_CSV, REQUIRED_CURVE_COLUMNS)
-    episodes, episodes_problem = _read_csv(EVALUATION_CSV, REQUIRED_EVALUATION_COLUMNS)
+    curves, curves_problem = read_table(TRAINING_CURVES_CSV, CURVE_COLUMNS)
+    episodes, episodes_problem = read_table(EVALUATION_CSV, EVALUATION_COLUMNS)
 
     if curves is None and episodes is None:
         st.error(

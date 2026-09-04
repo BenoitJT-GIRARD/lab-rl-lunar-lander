@@ -47,4 +47,7 @@ def replay_matches(replayed: Sequence[float], reported: Sequence[float]) -> bool
     """Whether the replay reproduced the episode that was reported."""
     if len(replayed) != len(reported):
         return False
-    return bool(np.allclose(replayed, reported, atol=REPLAY_TOLERANCE))
+    # rtol=0: `allclose` defaults to a *relative* tolerance of 1e-5, which at a reward of
+    # 250 is a quarter of a point per step -- enough to let a genuinely different trajectory
+    # pass as identical. The tolerance here is meant to cover float noise and nothing else.
+    return bool(np.allclose(replayed, reported, rtol=0.0, atol=REPLAY_TOLERANCE))

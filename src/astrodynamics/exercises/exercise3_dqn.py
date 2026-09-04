@@ -67,6 +67,10 @@ class ReplayBuffer:
     def sample(self, batch_size: int) -> list[Transition]:
         return random.sample(self._memory, batch_size)
 
+    def transitions(self) -> list[Transition]:
+        """Everything currently held, oldest first. For inspection, not for sampling."""
+        return list(self._memory)
+
     def __len__(self) -> int:
         return len(self._memory)
 

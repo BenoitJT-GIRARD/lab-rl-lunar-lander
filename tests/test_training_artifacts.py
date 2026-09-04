@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from astrodynamics.training.hyperparameters import DQNHyperParameters, PPOHyperParameters
-from astrodynamics.training.train_lunarlander import _parse_args, train_ppo
+from astrodynamics.training.train_lunarlander import _parse_args, train_dqn, train_ppo
 from astrodynamics.utils import run_dir
 
 
@@ -80,3 +80,23 @@ def test_publishing_refuses_a_directory_that_is_not_a_finished_run(tmp_path: Pat
 
     with pytest.raises(SystemExit, match="not a finished run"):
         publish(tmp_path)
+
+
+def test_dqn_writes_the_same_artefacts_under_the_same_names(tmp_path: Path) -> None:
+    """Both algorithms have to leave the same shape of run behind them.
+
+    They used to leave two: `EvalCallback` wrote `models/best_model.zip` for both, so a DQN
+    run silently replaced a PPO one, and the two CLIs disagreed about where the final model
+    went. The names are the contract `scripts/publish_run.py` reads.
+    """
+    run = tmp_path / "dqn"
+    hp = DQNHyperParameters(seed=5, total_timesteps=1_500, learning_starts=100)
+    _, metrics = train_dqn(hp, output=run)
+
+    assert (run / "best.zip").exists()
+    assert (run / "training_curves.csv").exists()
+    manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["algorithm"] == "DQN"
+    assert manifest["seed"] == 5
+    assert manifest["hyperparameters"]["total_timesteps"] == 1_500
+    assert metrics["n_episodes"] == 100

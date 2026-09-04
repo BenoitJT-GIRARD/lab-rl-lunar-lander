@@ -9,6 +9,11 @@ import warnings
 import numpy as np
 import torch
 
+#: Whether the "too late for this process" notice has already been given. Once is enough:
+#: the condition cannot change while the process runs, and repeating it on every call would
+#: make it noise, which is how a true warning stops being read.
+_HASH_SEED_REPORTED = False
+
 
 def set_global_seed(seed: int, deterministic_cudnn: bool = True) -> None:
     """Seed every generator that affects a training run.
@@ -17,21 +22,24 @@ def set_global_seed(seed: int, deterministic_cudnn: bool = True) -> None:
     ``manual_seed`` alone leaves the second GPU onwards unseeded, which is silent until the
     day the machine has two.
 
-    With ``deterministic_cudnn`` the cuDNN autotuner is switched off. Left on, it picks a
-    convolution algorithm from a timing benchmark, so the same seed on the same machine can
-    take a different code path depending on what else is running.
+    With ``deterministic_cudnn`` the cuDNN autotuner is switched off. Left on, it picks its
+    algorithm from a timing benchmark, so the same seed on the same machine can take a
+    different code path depending on what else is running.
 
     What this cannot do: ``PYTHONHASHSEED`` fixes string hashing, and Python reads it once,
-    at interpreter start. Setting it here only affects processes launched afterwards. It is
-    set for that reason, and a mismatch is reported rather than hidden -- an experiment
-    whose reproducibility depends on hash ordering has to be launched with the variable
-    already in the environment.
+    at interpreter start. Setting it here affects processes launched afterwards and not
+    this one. When the variable was absent at start -- the case where hashing really is
+    randomised and nothing here can fix it -- that is said once, rather than left as a
+    comment claiming a guarantee the function does not give.
     """
-    existing = os.environ.get("PYTHONHASHSEED")
-    if existing is not None and existing != str(seed):
+    global _HASH_SEED_REPORTED
+    if os.environ.get("PYTHONHASHSEED") is None and not _HASH_SEED_REPORTED:
+        _HASH_SEED_REPORTED = True
         warnings.warn(
-            f"PYTHONHASHSEED is {existing!r} in this process and cannot be changed after "
-            f"start; set_global_seed({seed}) applies to subprocesses only.",
+            "PYTHONHASHSEED was not set when this process started, so string hashing is "
+            f"randomised and set_global_seed({seed}) cannot change it -- it only applies to "
+            f"subprocesses. Launch with PYTHONHASHSEED={seed} if a result depends on "
+            "dictionary or set ordering.",
             RuntimeWarning,
             stacklevel=2,
         )
