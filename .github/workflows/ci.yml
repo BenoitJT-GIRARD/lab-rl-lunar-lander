@@ -39,7 +39,14 @@ jobs:
       - name: Bandit
         run: uv run python -m bandit -c pyproject.toml -r src scripts
 
-      # The suite trains throwaway policies for a few thousand steps on CPU and reads
-      # nothing from models/ or data/, so it needs no artefact from a training run.
+      # The suite trains throwaway policies for a few thousand steps on CPU. It does read
+      # the published artefacts -- data/*.csv, data/*.json and models/ppo/best.zip are
+      # tracked -- because the tests that matter most assert those are consistent.
+      #
+      # SDL_VIDEODRIVER=dummy: the recorder tests render frames through pygame. Gymnasium
+      # only opens a window for render_mode="human", but pygame still initialises SDL, and
+      # a runner has no display for it to find.
       - name: Pytest
+        env:
+          SDL_VIDEODRIVER: dummy
         run: uv run python -m pytest
