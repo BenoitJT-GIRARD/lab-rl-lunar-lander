@@ -6,6 +6,12 @@ this script is the step that says which. Nothing else in the pipeline writes to 
 published paths, so a figure in the README can always be traced to the run it came from.
 
     uv run python scripts/publish_run.py models/ppo/seed-42
+    uv run python scripts/publish_run.py --from-study
+
+`--from-study` picks the run whose mean is nearest the **median** of the study, rather than
+the best of them. Publishing the best of five and printing the mean of five beside it would
+be a third way of choosing the number after having seen it; the median run is the one whose
+score the published dispersion actually describes.
 
 Copies `best.zip` and `manifest.json` to `models/<algo>/`, and the run's training curve to
 `data/training_curves.csv`. Then re-run `scripts/evaluate_and_export.py`, which re-scores
@@ -26,6 +32,29 @@ sys.path.insert(0, str(ROOT / "src"))
 from rl_lander.utils import DATA_DIR, MODELS_DIR, TRAINING_CURVES_CSV  # noqa: E402
 
 REQUIRED = ("best.zip", "manifest.json")
+
+
+def median_run(study_path: Path) -> Path:
+    """The baseline run whose mean is nearest the median of the study.
+
+    Ties go to the lower seed, so the choice is a function of the artefact and not of the
+    order the filesystem happened to return.
+    """
+    if not study_path.exists():
+        raise SystemExit(
+            f"{study_path} is missing. Run `uv run python scripts/aggregate_study.py` first."
+        )
+    runs = json.loads(study_path.read_text(encoding="utf-8"))["per_run"]
+    if not runs:
+        raise SystemExit(f"{study_path} lists no baseline run.")
+    means = sorted(run["mean_reward"] for run in runs)
+    middle = means[len(means) // 2] if len(means) % 2 else sum(means[len(means) // 2 - 1 :][:2]) / 2
+    chosen = min(runs, key=lambda run: (abs(run["mean_reward"] - middle), run["seed"]))
+    print(
+        f"Median of {len(runs)} runs is {middle:.2f}; nearest is seed {chosen['seed']} "
+        f"at {chosen['mean_reward']:.2f}."
+    )
+    return ROOT / chosen["run"]
 
 
 def publish(run: Path) -> list[Path]:
@@ -62,13 +91,24 @@ def publish(run: Path) -> list[Path]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("run", type=Path, help="the run directory, e.g. models/ppo/seed-42")
+    parser.add_argument(
+        "run", type=Path, nargs="?", help="the run directory, e.g. models/ppo/seed-42"
+    )
+    parser.add_argument(
+        "--from-study",
+        action="store_true",
+        help="pick the run nearest the median of data/seed_study.json",
+    )
     args = parser.parse_args()
 
-    written = publish(args.run)
-    manifest = json.loads((args.run / "manifest.json").read_text(encoding="utf-8"))
+    if args.from_study == bool(args.run):
+        raise SystemExit("Pass a run directory, or --from-study. Not both, and not neither.")
+    run = median_run(DATA_DIR / "seed_study.json") if args.from_study else args.run
+
+    written = publish(run)
+    manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
     print(
-        f"Published {args.run} — mean_reward {manifest['mean_reward']:.2f}, "
+        f"Published {run} — mean_reward {manifest['mean_reward']:.2f}, "
         f"landing rate {manifest['landing_rate']:.0%}."
     )
     for path in written:

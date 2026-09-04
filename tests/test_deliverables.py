@@ -198,3 +198,56 @@ def test_the_headline_claim_holds_on_every_evaluation_seed(published_summary: di
     assert not below, "the solved threshold is not cleared on seed(s) " + ", ".join(
         f"{s['seed']} ({s['mean_reward']:.1f})" for s in below
     )
+
+
+# --- which run becomes the shipped policy -----------------------------------------------
+
+
+def test_the_published_run_is_the_median_not_the_best(tmp_path: Path) -> None:
+    """Publishing the best of five and printing the mean of five beside it would be a third
+    way of choosing the number after having seen it. The median run is the one whose score
+    the published dispersion actually describes."""
+    from scripts.publish_run import median_run
+
+    study = tmp_path / "seed_study.json"
+    study.write_text(
+        json.dumps(
+            {
+                "per_run": [
+                    {"seed": 42, "mean_reward": 264.0, "run": "models/ppo/seed-42"},
+                    {"seed": 43, "mean_reward": 242.0, "run": "models/ppo/seed-43"},
+                    {"seed": 44, "mean_reward": 251.0, "run": "models/ppo/seed-44"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert median_run(study).name == "seed-44"
+
+
+def test_a_tie_between_two_runs_is_broken_by_the_seed(tmp_path: Path) -> None:
+    """So the choice is a function of the artefact, not of filesystem ordering."""
+    from scripts.publish_run import median_run
+
+    study = tmp_path / "seed_study.json"
+    study.write_text(
+        json.dumps(
+            {
+                "per_run": [
+                    {"seed": 44, "mean_reward": 250.0, "run": "models/ppo/seed-44"},
+                    {"seed": 42, "mean_reward": 250.0, "run": "models/ppo/seed-42"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert median_run(study).name == "seed-42"
+
+
+def test_publishing_from_a_study_that_does_not_exist_says_which_command_makes_it(
+    tmp_path: Path,
+) -> None:
+    from scripts.publish_run import median_run
+
+    with pytest.raises(SystemExit, match="aggregate_study"):
+        median_run(tmp_path / "absent.json")

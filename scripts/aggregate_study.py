@@ -71,7 +71,7 @@ def _seed_study(baselines: list[dict], dqn: list[dict]) -> dict:
         "n_runs": len(baselines),
         "total_timesteps": baselines[0]["total_timesteps"] if baselines else None,
         "evaluation": {
-            "n_episodes": baselines[0]["n_episodes"] if baselines else None,
+            "n_episodes": int(baselines[0]["n_episodes"]) if baselines else None,
             "seed": baselines[0]["evaluation_seed"] if baselines else None,
         },
         "per_run": [
