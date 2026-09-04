@@ -1,205 +1,249 @@
-"""Streamlit dashboard summarising the Eagle-1 evaluation run.
+"""Streamlit dashboard over the evaluation run.
 
-Displays:
+Reads `data/evaluation_episodes.csv` and `data/training_curves.csv`, and shows the training
+curve, the aggregate metrics, the per-episode telemetry behind filters, and how the reward
+relates to engine use.
 
-* training reward curve (from ``data/training_curves.csv``),
-* aggregated evaluation metrics (mean / std / success rate / fuel use),
-* per-episode telemetry with interactive filters,
-* action distribution and reward histogram.
-
-Filters honour the review requirement of having at least one
-dynamic chart / filter on the dashboard.
+One rule holds the page together: **every section sees the same filtered frame.** The first
+version filtered inside the episode section and then handed the whole, unfiltered frame to
+the engine analysis, so two panels on one screen described two different populations.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from astrodynamics.utils import (
-    EVALUATION_CSV,
-    TRAINING_CURVES_CSV,
+from astrodynamics.utils import EVALUATION_CSV, TRAINING_CURVES_CSV
+
+#: What the evaluation export writes. A missing column means the CSV predates the current
+#: exporter, and saying so beats a KeyError halfway down the page.
+REQUIRED_EVALUATION_COLUMNS = (
+    "episode",
+    "seed",
+    "total_reward",
+    "length",
+    "landed",
+    "meets_threshold",
+    "final_x",
+    "final_y",
+    "main_engine_firings",
+    "side_engine_firings",
 )
+REQUIRED_CURVE_COLUMNS = ("timesteps", "ep_rew_mean", "ep_rew_std")
 
-st.set_page_config(
-    page_title="Eagle-1 — Performance dashboard",
-    page_icon=":bar_chart:",
-    layout="wide",
-)
+OUTCOME_COLOURS = {"landed": "#1f9d55", "did not land": "#c81e1e"}
 
 
-def _read_csv_safely(path: Path) -> pd.DataFrame | None:
+def _read_csv(path: Path, required: tuple[str, ...]) -> tuple[pd.DataFrame | None, str | None]:
+    """Read a CSV and check its columns. Returns ``(frame, problem)``."""
     if not path.exists():
-        return None
+        return None, f"`{path.name}` not found."
     try:
-        return pd.read_csv(path)
-    except pd.errors.EmptyDataError:
-        return None
+        frame = pd.read_csv(path)
+    except (pd.errors.EmptyDataError, pd.errors.ParserError) as exc:
+        return None, f"`{path.name}` could not be read: {exc}"
+    if frame.empty:
+        return None, f"`{path.name}` is empty."
+    missing = [column for column in required if column not in frame.columns]
+    if missing:
+        return None, (
+            f"`{path.name}` is missing {', '.join(missing)}. It was probably written by an "
+            "older version of `scripts/evaluate_and_export.py`; re-run it."
+        )
+    return frame, None
 
 
-def _kpi_row(df: pd.DataFrame) -> None:
-    cols = st.columns(4)
-    cols[0].metric("Episodes", len(df))
+def _with_outcome(frame: pd.DataFrame) -> pd.DataFrame:
+    """Add a text outcome column, so the colour scale stays categorical.
+
+    Plotly reads an integer column as continuous and paints a gradient over two values,
+    which is unreadable and implies an ordering that does not exist.
+    """
+    return frame.assign(
+        outcome=frame["landed"].map({1: "landed", 0: "did not land"}).astype("string")
+    )
+
+
+def _kpi_row(frame: pd.DataFrame) -> None:
+    cols = st.columns(5)
+    cols[0].metric("Episodes", len(frame))
     cols[1].metric(
         "Mean reward",
-        f"{df['total_reward'].mean():.1f}",
-        delta=f"std {df['total_reward'].std():.1f}",
+        f"{frame['total_reward'].mean():.1f}",
+        delta=f"std {frame['total_reward'].std():.1f}",
     )
-    cols[2].metric("Success rate", f"{(df['landed']).mean() * 100:.1f}%")
-    cols[3].metric("Mean fuel firings", f"{df['fuel_used'].mean():.1f}")
+    # Two rates, not one. Landing is read from the environment's terminal reward; the
+    # threshold is the score. They answer different questions and a weaker policy separates
+    # them.
+    cols[2].metric("Landing rate", f"{frame['landed'].mean() * 100:.1f}%")
+    cols[3].metric("Above solved threshold", f"{frame['meets_threshold'].mean() * 100:.1f}%")
+    cols[4].metric(
+        "Mean engine firings",
+        f"{(frame['main_engine_firings'] + frame['side_engine_firings']).mean():.1f}",
+        delta=f"main {frame['main_engine_firings'].mean():.0f}",
+    )
 
 
 def _training_section(curves: pd.DataFrame) -> None:
     st.subheader(":chart_with_upwards_trend: Training progress")
-    fig = px.line(
-        curves,
-        x="timesteps",
-        y="ep_rew_mean",
-        title="Rolling mean reward during training",
-        markers=False,
+    st.caption(
+        "`ep_rew_mean` is a rolling mean over episodes finished during training, under a "
+        "stochastic policy. It is a progress signal, not the evaluation result."
     )
-    fig.add_scatter(
-        x=curves["timesteps"],
-        y=curves["ep_rew_mean"] + curves["ep_rew_std"],
-        mode="lines",
-        name="+1 std",
-        line={"dash": "dot"},
-    )
-    fig.add_scatter(
-        x=curves["timesteps"],
-        y=curves["ep_rew_mean"] - curves["ep_rew_std"],
-        mode="lines",
-        name="-1 std",
-        line={"dash": "dot"},
-    )
+    fig = px.line(curves, x="timesteps", y="ep_rew_mean", title="Rolling mean reward")
+    for sign, name in ((1, "+1 std"), (-1, "-1 std")):
+        fig.add_scatter(
+            x=curves["timesteps"],
+            y=curves["ep_rew_mean"] + sign * curves["ep_rew_std"],
+            mode="lines",
+            name=name,
+            line={"dash": "dot"},
+        )
     fig.update_layout(yaxis_title="Reward", xaxis_title="Timesteps")
     st.plotly_chart(fig, use_container_width=True)
 
 
-def _episode_section(df: pd.DataFrame) -> None:
-    st.subheader(":telescope: Per-episode telemetry")
+def _filters(frame: pd.DataFrame) -> pd.DataFrame:
+    """Collect the sidebar filters and return the frame every section will use."""
     with st.sidebar:
         st.header(":mag: Filters")
-        landed_filter = st.selectbox(
-            "Outcome", options=["All episodes", "Landed only", "Crashed only"], index=0
+        outcome = st.selectbox(
+            "Outcome", options=["All episodes", "Landed only", "Did not land"], index=0
         )
-        min_reward, max_reward = st.slider(
+        low, high = st.slider(
             "Reward range",
-            float(df["total_reward"].min()),
-            float(df["total_reward"].max()),
-            (float(df["total_reward"].min()), float(df["total_reward"].max())),
+            float(frame["total_reward"].min()),
+            float(frame["total_reward"].max()),
+            (float(frame["total_reward"].min()), float(frame["total_reward"].max())),
         )
         max_length = st.slider(
             "Max episode length",
-            int(df["length"].min()),
-            int(df["length"].max()),
-            int(df["length"].max()),
+            int(frame["length"].min()),
+            int(frame["length"].max()),
+            int(frame["length"].max()),
         )
 
-    filtered = df.copy()
-    if landed_filter == "Landed only":
+    filtered = frame
+    if outcome == "Landed only":
         filtered = filtered[filtered["landed"] == 1]
-    elif landed_filter == "Crashed only":
+    elif outcome == "Did not land":
         filtered = filtered[filtered["landed"] == 0]
-    filtered = filtered[
-        (filtered["total_reward"] >= min_reward)
-        & (filtered["total_reward"] <= max_reward)
+    return filtered[
+        (filtered["total_reward"] >= low)
+        & (filtered["total_reward"] <= high)
         & (filtered["length"] <= max_length)
     ]
 
-    if filtered.empty:
-        st.warning("No episode matches the current filters.")
-        return
 
-    _kpi_row(filtered)
+def _episode_section(frame: pd.DataFrame) -> None:
+    st.subheader(":telescope: Per-episode telemetry")
+    coloured = _with_outcome(frame)
+
     col_a, col_b = st.columns(2)
     with col_a:
         fig = px.histogram(
-            filtered,
+            coloured,
             x="total_reward",
             nbins=20,
             title="Reward distribution",
-            color="landed",
-            color_discrete_map={1: "#1f9d55", 0: "#c81e1e"},
+            color="outcome",
+            color_discrete_map=OUTCOME_COLOURS,
         )
         st.plotly_chart(fig, use_container_width=True)
     with col_b:
         fig = px.scatter(
-            filtered,
+            coloured,
             x="final_x",
             y="final_y",
-            color="landed",
-            size="fuel_used",
-            hover_data=["episode", "total_reward", "length"],
-            title="Final position vs. reward (size = fuel firings)",
-            color_discrete_map={1: "#1f9d55", 0: "#c81e1e"},
+            color="outcome",
+            size="main_engine_firings",
+            hover_data=["episode", "seed", "total_reward", "length"],
+            title="Where the lander came to rest (size = main-engine firings)",
+            color_discrete_map=OUTCOME_COLOURS,
         )
         fig.add_vline(x=-0.1, line_dash="dot", line_color="grey")
         fig.add_vline(x=0.1, line_dash="dot", line_color="grey")
         st.plotly_chart(fig, use_container_width=True)
 
-    st.dataframe(filtered, use_container_width=True, height=320)
+    st.dataframe(frame, use_container_width=True, height=320)
 
 
-def _action_section(df: pd.DataFrame) -> None:
-    st.subheader(":joystick: Action analysis")
-    fuel_buckets = pd.cut(
-        df["fuel_used"],
-        bins=[-1, 10, 30, 60, np.inf],
-        labels=["≤10", "11-30", "31-60", "60+"],
+def _engine_section(frame: pd.DataFrame) -> None:
+    st.subheader(":joystick: Engine use")
+    st.caption(
+        "Both engines, not only the main one. The side thrusters cost fuel and the reward "
+        "function charges for them."
     )
+
+    total = frame["main_engine_firings"] + frame["side_engine_firings"]
+    if total.nunique() < 2:
+        st.info("Every episode used the same number of firings — nothing to bucket.")
+        return
+
+    # Quartiles of the observed distribution rather than fixed cut points. Fixed bands of
+    # 10 / 30 / 60 put every episode of this run in the last bucket, which is a chart that
+    # cannot say anything.
+    buckets = pd.qcut(total, q=4, duplicates="drop")
     breakdown = (
-        df.assign(fuel_bucket=fuel_buckets)
-        .groupby("fuel_bucket", observed=True)["total_reward"]
+        frame.assign(bucket=buckets.astype(str))
+        .groupby("bucket", observed=True)["total_reward"]
         .agg(["mean", "count"])
         .reset_index()
     )
     fig = px.bar(
         breakdown,
-        x="fuel_bucket",
+        x="bucket",
         y="mean",
-        text=breakdown["count"].apply(lambda v: f"n={v}"),
-        title="Mean reward per fuel-firing bucket",
+        text=breakdown["count"].apply(lambda value: f"n={value}"),
+        title="Mean reward by total engine firings (quartiles)",
     )
     fig.update_traces(textposition="outside")
+    fig.update_layout(xaxis_title="Total firings", yaxis_title="Mean reward")
     st.plotly_chart(fig, use_container_width=True)
 
 
 def main() -> None:
-    st.title(":bar_chart: Eagle-1 — Performance dashboard")
-    st.caption(
-        "Interactive review of the autopilot's training and evaluation runs. "
-        "Use the sidebar filters to slice the per-episode data."
+    st.set_page_config(
+        page_title="Eagle-1 — Performance dashboard",
+        page_icon=":bar_chart:",
+        layout="wide",
     )
+    st.title(":bar_chart: Eagle-1 — Performance dashboard")
+    st.caption("Training and evaluation of the autopilot. The sidebar filters every panel.")
 
-    eval_df = _read_csv_safely(EVALUATION_CSV)
-    curves_df = _read_csv_safely(TRAINING_CURVES_CSV)
+    curves, curves_problem = _read_csv(TRAINING_CURVES_CSV, REQUIRED_CURVE_COLUMNS)
+    episodes, episodes_problem = _read_csv(EVALUATION_CSV, REQUIRED_EVALUATION_COLUMNS)
 
-    if eval_df is None and curves_df is None:
+    if curves is None and episodes is None:
         st.error(
-            "No evaluation or training data available yet. Run "
-            "`python -m astrodynamics.training.train_lunarlander` and the "
-            "evaluation pipeline before launching the dashboard."
+            f"Nothing to show. {curves_problem} {episodes_problem}\n\n"
+            "Train with `uv run python -m astrodynamics.training.train_lunarlander`, "
+            "then export with `uv run python scripts/evaluate_and_export.py`."
         )
         return
 
-    if curves_df is not None and not curves_df.empty:
-        _training_section(curves_df)
+    if curves is not None:
+        _training_section(curves)
     else:
-        st.info("Training curve CSV not found — the training section is hidden.")
+        st.info(curves_problem)
 
-    if eval_df is not None and not eval_df.empty:
-        _episode_section(eval_df)
-        _action_section(eval_df)
-    else:
-        st.info("Evaluation CSV not found — the per-episode section is hidden.")
+    if episodes is None:
+        st.info(episodes_problem)
+        return
+
+    filtered = _filters(episodes)
+    if filtered.empty:
+        st.warning("No episode matches the current filters.")
+        return
+
+    _kpi_row(filtered)
+    _episode_section(filtered)
+    _engine_section(filtered)
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main()
-else:
     main()

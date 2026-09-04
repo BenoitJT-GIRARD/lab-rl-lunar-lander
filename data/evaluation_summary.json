@@ -1,17 +1,118 @@
 {
-  "model": "G:\\Mon Drive\\OC\\Projet_11\\astrodynamics\\models\\ppo_lunarlander_best.zip",
-  "n_episodes": 100,
-  "mean_reward": 261.39435473000003,
-  "std_reward": 26.143631172496512,
+  "canonical_seed": 2024,
   "metrics": {
     "n_episodes": 100.0,
     "mean_reward": 262.2183903488285,
-    "std_reward": 18.204857923539628,
+    "std_reward": 18.296570634578625,
     "min_reward": 222.52257713910691,
     "max_reward": 299.9691218571159,
     "median_reward": 263.08667113599665,
     "mean_length": 307.3,
-    "mean_fuel_used": 140.85,
-    "success_rate": 1.0
+    "mean_main_engine_firings": 140.85,
+    "mean_side_engine_firings": 76.44,
+    "landing_rate": 1.0,
+    "threshold_rate": 1.0
+  },
+  "across_seeds": {
+    "seeds": [
+      2024,
+      7,
+      99,
+      123,
+      555,
+      31337
+    ],
+    "n_episodes": 100,
+    "per_seed": [
+      {
+        "seed": 2024,
+        "n_episodes": 100.0,
+        "mean_reward": 262.2183903488285,
+        "std_reward": 18.296570634578625,
+        "min_reward": 222.52257713910691,
+        "max_reward": 299.9691218571159,
+        "median_reward": 263.08667113599665,
+        "mean_length": 307.3,
+        "mean_main_engine_firings": 140.85,
+        "mean_side_engine_firings": 76.44,
+        "landing_rate": 1.0,
+        "threshold_rate": 1.0
+      },
+      {
+        "seed": 7,
+        "n_episodes": 100.0,
+        "mean_reward": 260.7773060413295,
+        "std_reward": 31.040782227429098,
+        "min_reward": 62.971582981907204,
+        "max_reward": 300.3970564997974,
+        "median_reward": 263.62025661090127,
+        "mean_length": 313.35,
+        "mean_main_engine_firings": 140.44,
+        "mean_side_engine_firings": 80.19,
+        "landing_rate": 0.98,
+        "threshold_rate": 0.98
+      },
+      {
+        "seed": 99,
+        "n_episodes": 100.0,
+        "mean_reward": 265.8128074948151,
+        "std_reward": 23.0307725237882,
+        "min_reward": 133.04260079302347,
+        "max_reward": 309.2790678227128,
+        "median_reward": 265.9776895463258,
+        "mean_length": 313.02,
+        "mean_main_engine_firings": 141.59,
+        "mean_side_engine_firings": 76.8,
+        "landing_rate": 0.99,
+        "threshold_rate": 0.99
+      },
+      {
+        "seed": 123,
+        "n_episodes": 100.0,
+        "mean_reward": 266.1261729678035,
+        "std_reward": 23.838133912673396,
+        "min_reward": 133.04260079302347,
+        "max_reward": 309.2790678227128,
+        "median_reward": 266.82094387368386,
+        "mean_length": 314.79,
+        "mean_main_engine_firings": 141.33,
+        "mean_side_engine_firings": 77.17,
+        "landing_rate": 0.99,
+        "threshold_rate": 0.99
+      },
+      {
+        "seed": 555,
+        "n_episodes": 100.0,
+        "mean_reward": 263.3167866199121,
+        "std_reward": 22.38368574974446,
+        "min_reward": 136.86818512546367,
+        "max_reward": 302.11211737616475,
+        "median_reward": 263.3869978472193,
+        "mean_length": 317.55,
+        "mean_main_engine_firings": 141.22,
+        "mean_side_engine_firings": 79.71,
+        "landing_rate": 0.99,
+        "threshold_rate": 0.99
+      },
+      {
+        "seed": 31337,
+        "n_episodes": 100.0,
+        "mean_reward": 256.01238398029017,
+        "std_reward": 32.09947353635764,
+        "min_reward": 118.85618793766754,
+        "max_reward": 294.10201982702165,
+        "median_reward": 260.60211067988223,
+        "mean_length": 334.56,
+        "mean_main_engine_firings": 140.72,
+        "mean_side_engine_firings": 88.75,
+        "landing_rate": 0.96,
+        "threshold_rate": 0.96
+      }
+    ],
+    "mean_of_means": 262.37730790882983,
+    "spread_of_means": 3.7372927171216705,
+    "worst_seed_mean": 256.01238398029017,
+    "worst_episode": 62.971582981907204,
+    "lowest_landing_rate": 0.96
   }
 }

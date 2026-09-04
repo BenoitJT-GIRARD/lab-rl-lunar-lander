@@ -29,26 +29,17 @@ ACTION_LABELS: dict[int, str] = {
 
 
 @dataclass(slots=True)
-class StepResult:
-    """Snapshot of a single environment step driven by the agent."""
-
-    step: int
-    action: int
-    action_label: str
-    reward: float
-    cumulative_reward: float
-    observation: list[float]
-    terminated: bool
-    truncated: bool
-
-
-@dataclass(slots=True)
 class EpisodeResult:
     """Summary of a complete episode rollout."""
 
     total_reward: float
     length: int
+    #: The lander came to rest, read from the environment's terminal reward. Not the same
+    #: question as whether the score cleared 200, and the two are kept apart.
     landed: bool
+    #: The episode ended by itself rather than hitting the step limit. A truncated episode
+    #: neither landed nor crashed: it ran out of time still flying.
+    terminated: bool
     final_observation: list[float]
     actions: list[int]
     rewards: list[float]
@@ -114,11 +105,17 @@ class LunarLanderAgent:
                     frames.append(env.render())
                 steps += 1
             total_reward = float(sum(rewards))
+            # LunarLander assigns exactly +100 when the lander comes to rest and -100 when
+            # it crashes or leaves the frame, so the last reward answers the question
+            # directly. `total_reward >= 200` answered a different one -- it is the mean
+            # at which the task counts as solved, and it says nothing about one episode.
+            landed = bool(terminated and rewards and rewards[-1] > 0.0)
             return (
                 EpisodeResult(
                     total_reward=total_reward,
                     length=steps,
-                    landed=total_reward >= 200.0,
+                    landed=landed,
+                    terminated=bool(terminated),
                     final_observation=obs.tolist(),
                     actions=actions,
                     rewards=rewards,
