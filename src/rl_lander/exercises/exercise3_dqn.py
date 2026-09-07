@@ -236,7 +236,7 @@ def train_sb3_dqn(
     """The same agent as the manual loop, with the plumbing delegated to the library.
 
     Returns the model and its score over 100 evaluation episodes. Nothing is written to
-    disk: this is the comparison half of the exercise, and the mission's own training
+    disk: this is the comparison half of the exercise, and the LunarLander training
     pipeline is what persists policies.
     """
     cfg = config or SB3DQNConfig()

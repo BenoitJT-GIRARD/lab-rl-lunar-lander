@@ -1,4 +1,4 @@
-"""Curated hyper-parameter sets for the mission.
+"""Curated hyper-parameter sets for LunarLander-v3.
 
 The default values track the well-known Stable-Baselines3 RL Zoo recipe
 for LunarLander-v3 (PPO) and provide a sensible DQN baseline as a

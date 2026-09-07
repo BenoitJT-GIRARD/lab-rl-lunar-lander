@@ -308,8 +308,8 @@ conclusion — publish the method's dispersion, not one run's score — does not
 **One seed per hyper-parameter trial.** The trials answer "is that table real", not "which
 value is best".
 
-**One hundred evaluation episodes.** That is what the brief asks for, and the across-grid table
-shows what it costs: the mean is stable, the tails are not. For a landing autopilot the number
+**One hundred evaluation episodes.** That is the horizon this repository fixed, and the
+across-grid table shows what it costs: the mean is stable, the tails are not. For a landing autopilot the number
 that would actually matter is the worst case, and 100 episodes says very little about it —
 seed 44's worst episode is a crash at −33.
 
