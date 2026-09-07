@@ -248,19 +248,21 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:  # pragma: no cover - CLI helper
     args = _parse_args(argv)
+    # Only the flags actually given are passed, so each dataclass supplies its own
+    # defaults. Writing `args.timesteps or PPOHyperParameters.total_timesteps` looks like
+    # the same thing and is not: these dataclasses use `slots=True`, and on a slotted
+    # dataclass the class attribute is the slot descriptor rather than the default. The
+    # fallback silently produced a `member_descriptor`, which SB3 then compared against an
+    # integer, deep inside its training loop.
+    overrides = {}
+    if args.timesteps is not None:
+        overrides["total_timesteps"] = args.timesteps
     if args.algo == "ppo":
-        hp = PPOHyperParameters(
-            seed=args.seed,
-            total_timesteps=args.timesteps or PPOHyperParameters.total_timesteps,
-            n_envs=args.n_envs or PPOHyperParameters.n_envs,
-        )
-        _, metrics = train_ppo(hp, output=args.output)
+        if args.n_envs is not None:
+            overrides["n_envs"] = args.n_envs
+        _, metrics = train_ppo(PPOHyperParameters(seed=args.seed, **overrides), output=args.output)
     else:
-        hp = DQNHyperParameters(
-            seed=args.seed,
-            total_timesteps=args.timesteps or DQNHyperParameters.total_timesteps,
-        )
-        _, metrics = train_dqn(hp, output=args.output)
+        _, metrics = train_dqn(DQNHyperParameters(seed=args.seed, **overrides), output=args.output)
 
     run = args.output or run_dir(args.algo, args.seed)
     print(

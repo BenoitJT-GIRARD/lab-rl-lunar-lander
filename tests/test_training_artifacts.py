@@ -100,3 +100,35 @@ def test_dqn_writes_the_same_artefacts_under_the_same_names(tmp_path: Path) -> N
     assert manifest["seed"] == 5
     assert manifest["hyperparameters"]["total_timesteps"] == 1_500
     assert metrics["n_episodes"] == 100
+
+
+def test_a_slotted_dataclass_default_is_read_from_an_instance() -> None:
+    """`PPOHyperParameters.total_timesteps` is a slot descriptor, not the default.
+
+    The CLI used it as a fallback when `--timesteps` was absent. The descriptor passed
+    through the constructor without complaint and failed much later, inside SB3, on
+    `while self.num_timesteps < total_timesteps` -- a TypeError between an int and a
+    `member_descriptor`, thrown after the environments were built and the run had started.
+    """
+    assert isinstance(type(PPOHyperParameters.total_timesteps), type)
+    assert not isinstance(PPOHyperParameters.total_timesteps, int), (
+        "if this ever becomes an int, slots=True was dropped -- check why"
+    )
+    assert isinstance(PPOHyperParameters().total_timesteps, int)
+    assert isinstance(DQNHyperParameters().total_timesteps, int)
+
+
+def test_the_cli_builds_hyperparameters_that_sb3_can_actually_use() -> None:
+    """Every field the trainers pass to SB3 has to be a number by the time they do."""
+    from rl_lander.training import train_lunarlander as module
+
+    for argv, cls in (
+        (["--algo", "ppo"], PPOHyperParameters),
+        (["--algo", "dqn"], DQNHyperParameters),
+        (["--algo", "ppo", "--timesteps", "5000"], PPOHyperParameters),
+    ):
+        args = module._parse_args(argv)
+        overrides = {} if args.timesteps is None else {"total_timesteps": args.timesteps}
+        hp = cls(seed=args.seed, **overrides)
+        assert isinstance(hp.total_timesteps, int) and hp.total_timesteps > 0
+        assert isinstance(hp.n_envs, int) and hp.n_envs > 0

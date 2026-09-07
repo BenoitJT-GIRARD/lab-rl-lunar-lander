@@ -54,7 +54,13 @@ TRIALS = {
 
 #: Equal step budget for DQN. Its own default is 200_000, which would turn the comparison
 #: into a statement about budget rather than about algorithm.
-DQN_TIMESTEPS = PPOHyperParameters.total_timesteps
+#:
+#: Read from an *instance*. The hyper-parameter classes use `slots=True`, and on a slotted
+#: dataclass the class attribute is the slot descriptor, not the default value -- so
+#: `PPOHyperParameters.total_timesteps` is a `member_descriptor`. It passes through the
+#: constructor without complaint and fails eight hundred lines later, inside SB3, on
+#: `while self.num_timesteps < total_timesteps`.
+DQN_TIMESTEPS = PPOHyperParameters().total_timesteps
 
 
 def _plan() -> list[tuple[str, Path, object]]:
