@@ -18,6 +18,8 @@
 
 # Binaires.
 *.png binary
+*.gif binary
+*.mp4 binary
 *.jpg binary
 *.jpeg binary
 *.pdf binary
