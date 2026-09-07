@@ -5,7 +5,7 @@ description = "Reinforcement-learning autopilot for Gymnasium LunarLander-v3"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 license = { text = "MIT" }
-authors = [{ name = "Benoit Girard" }]
+authors = [{ name = "Benoît J. T. GIRARD", email = "53222414+BenoitJT-GIRARD@users.noreply.github.com" }]
 keywords = [
     "reinforcement-learning",
     "lunar-lander",
