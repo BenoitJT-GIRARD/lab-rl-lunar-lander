@@ -1,0 +1,5 @@
+trial,changed,value,seed,total_timesteps,mean_reward,std_reward,landing_rate,delta_vs_baseline,larger_than_seed_spread,run
+baseline,,,5 seeds,1000000,254.14,13.32,0.984,0.0,,models/ppo/seed-*
+gamma099,gamma,0.99,42,1000000,173.13,97.43,0.73,-81.0,yes,models/ppo/seed-42-gamma099
+lr1e-3,learning_rate,0.001,42,1000000,267.73,23.3,0.99,13.6,yes,models/ppo/seed-42-lr1e-3
+nsteps2048,n_steps,2048,42,1000000,210.06,57.17,0.91,-44.08,yes,models/ppo/seed-42-nsteps2048

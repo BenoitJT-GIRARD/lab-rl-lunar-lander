@@ -1,5 +1,5 @@
 {
-  "model": "models/ppo_lunarlander_best.zip",
+  "model": "models/ppo/best.zip",
   "algorithm": "PPO",
   "n_episodes": 100,
   "seeds": [
@@ -11,8 +11,8 @@
     31337
   ],
   "deterministic": true,
-  "evaluated_at": "2026-09-04T05:47:25+00:00",
-  "git_revision": "ce15917a08a7",
+  "evaluated_at": "2026-09-04T08:34:18+00:00",
+  "git_revision": "3307dc16cc8a",
   "versions": {
     "gymnasium": "1.0.0",
     "stable_baselines3": "2.4.0",

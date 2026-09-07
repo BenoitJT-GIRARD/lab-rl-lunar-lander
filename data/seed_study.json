@@ -1,0 +1,71 @@
+{
+  "algorithm": "PPO",
+  "n_runs": 5,
+  "total_timesteps": 1000000,
+  "evaluation": {
+    "n_episodes": 100,
+    "seed": 2024
+  },
+  "per_run": [
+    {
+      "seed": 42,
+      "mean_reward": 264.05,
+      "std_reward": 19.13,
+      "landing_rate": 1.0,
+      "threshold_rate": 1.0,
+      "min_reward": 217.51,
+      "run": "models/ppo/seed-42"
+    },
+    {
+      "seed": 43,
+      "mean_reward": 242.03,
+      "std_reward": 27.41,
+      "landing_rate": 0.97,
+      "threshold_rate": 0.97,
+      "min_reward": 111.52,
+      "run": "models/ppo/seed-43"
+    },
+    {
+      "seed": 44,
+      "mean_reward": 237.43,
+      "std_reward": 36.09,
+      "landing_rate": 0.98,
+      "threshold_rate": 0.96,
+      "min_reward": -33.38,
+      "run": "models/ppo/seed-44"
+    },
+    {
+      "seed": 45,
+      "mean_reward": 261.8,
+      "std_reward": 29.09,
+      "landing_rate": 0.97,
+      "threshold_rate": 0.97,
+      "min_reward": 122.78,
+      "run": "models/ppo/seed-45"
+    },
+    {
+      "seed": 46,
+      "mean_reward": 265.39,
+      "std_reward": 19.2,
+      "landing_rate": 1.0,
+      "threshold_rate": 1.0,
+      "min_reward": 224.65,
+      "run": "models/ppo/seed-46"
+    }
+  ],
+  "mean_of_runs": 254.14,
+  "spread_between_runs": 13.32,
+  "worst_run": 237.43,
+  "best_run": 265.39,
+  "runs_clearing_200": 5,
+  "dqn_at_equal_budget": [
+    {
+      "seed": 42,
+      "total_timesteps": 1000000,
+      "mean_reward": 271.13,
+      "std_reward": 47.51,
+      "landing_rate": 0.96,
+      "run": "models/dqn/seed-42"
+    }
+  ]
+}
