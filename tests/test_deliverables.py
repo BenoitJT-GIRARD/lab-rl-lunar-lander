@@ -145,6 +145,17 @@ def published_summary() -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _published_episodes() -> list[dict[str, str]]:
+    """The exported episodes, with the handle closed.
+
+    `csv.DictReader(path.open())` leaks the file until the garbage collector runs, and with
+    warnings as errors the ResourceWarning fails the test that reads it -- which is the
+    rule doing its job on this suite rather than on a dependency.
+    """
+    with (DATA_DIR / "evaluation_episodes.csv").open(encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
 def test_the_shipped_policy_is_where_everything_expects_it() -> None:
     assert DEFAULT_MODEL_PATH.exists(), f"{DEFAULT_MODEL_PATH} is the policy the API serves"
 
@@ -153,7 +164,7 @@ def test_the_published_csv_and_the_published_summary_are_one_collection(
     published_summary: dict,
 ) -> None:
     """Two numbers used to be published from two different evaluation loops."""
-    rows = list(csv.DictReader((DATA_DIR / "evaluation_episodes.csv").open(encoding="utf-8")))
+    rows = _published_episodes()
     metrics = published_summary["metrics"]
 
     assert len(rows) == int(metrics["n_episodes"])
@@ -165,7 +176,7 @@ def test_the_published_csv_and_the_published_summary_are_one_collection(
 
 
 def test_every_published_episode_records_the_seed_that_replays_it(published_summary: dict) -> None:
-    rows = list(csv.DictReader((DATA_DIR / "evaluation_episodes.csv").open(encoding="utf-8")))
+    rows = _published_episodes()
     seeds = [int(row["seed"]) for row in rows]
     canonical = int(published_summary["canonical_seed"])
     assert seeds == list(range(canonical, canonical + len(rows)))
