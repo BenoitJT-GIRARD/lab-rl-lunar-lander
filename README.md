@@ -5,9 +5,10 @@ it is judged on measured across five independent trainings rather than one.
 
 ![The trained policy landing, seed 6](docs/images/landing.gif)
 
-**Project status** — finished, and archived in a runnable state. The CI is frozen to manual
-trigger so that nothing here decays into a red badge on a project nobody maintains. Every
-figure below is read from a file in `data/`, written by a script in `scripts/`.
+**Project status** — finished, and archived in a runnable state. Every figure below is
+read from a file in `data/`, written by a script in `scripts/`; nothing is redrawn by hand.
+Continuous integration runs on push and on pull requests, and trains nothing: the published
+policy is the checkpoint committed here.
 
 ## The problem
 

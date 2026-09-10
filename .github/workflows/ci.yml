@@ -1,7 +1,6 @@
 name: CI
 
-# No `schedule` trigger: this repository is finished, and a nightly build that nobody
-# reads would burn minutes to turn red on its own one day.
+# No `schedule` trigger: training is not run here, only the checks below.
 on:
   push:
     branches: ["main", "feat/**"]
@@ -28,8 +27,7 @@ jobs:
       - name: Sync dependencies
         run: uv sync --frozen --extra dev
 
-      # Checks only. Nothing here rewrites the tree: a job that formats before it
-      # verifies always passes, and tells you nothing.
+      # Checks only. Nothing in this job writes to the checkout.
       - name: Ruff
         run: uv run ruff check .
 
