@@ -5,7 +5,7 @@ Exactly one run is the one the README quotes, the API serves and the dashboard p
 this script is the step that says which. Nothing else in the pipeline writes to the
 published paths, so a figure in the README can always be traced to the run it came from.
 
-    uv run python scripts/publish_run.py models/ppo/seed-42
+    uv run python scripts/publish_run.py var/runs/ppo/seed-42
     uv run python scripts/publish_run.py --from-study
 
 `--from-study` picks the run whose mean is nearest the **median** of the study, rather than
@@ -14,7 +14,7 @@ be a third way of choosing the number after having seen it; the median run is th
 score the published dispersion actually describes.
 
 Copies `best.zip` and `manifest.json` to `models/<algo>/`, and the run's training curve to
-`data/training_curves.csv`. Then re-run `scripts/evaluate_and_export.py`, which re-scores
+`reports/training_curves.csv`. Then re-run `scripts/evaluate_and_export.py`, which re-scores
 the published model and rewrites the evaluation exports from it.
 """
 
@@ -23,13 +23,10 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-
-from rl_lander.utils import DATA_DIR, MODELS_DIR, TRAINING_CURVES_CSV  # noqa: E402
+from rl_lander.utils import MODELS_DIR, REPORTS_DIR, TRAINING_CURVES_CSV
+from rl_lander.utils import ROOT_DIR as ROOT
 
 REQUIRED = ("best.zip", "manifest.json")
 
@@ -83,7 +80,7 @@ def publish(run: Path) -> list[Path]:
 
     curve = run / "training_curves.csv"
     if curve.exists():
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        REPORTS_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copy2(curve, TRAINING_CURVES_CSV)
         written.append(TRAINING_CURVES_CSV)
     return written
@@ -92,7 +89,7 @@ def publish(run: Path) -> list[Path]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "run", type=Path, nargs="?", help="the run directory, e.g. models/ppo/seed-42"
+        "run", type=Path, nargs="?", help="the run directory, e.g. var/runs/ppo/seed-42"
     )
     parser.add_argument(
         "--from-study",
@@ -103,7 +100,7 @@ def main() -> None:
 
     if args.from_study == bool(args.run):
         raise SystemExit("Pass a run directory, or --from-study. Not both, and not neither.")
-    run = median_run(DATA_DIR / "seed_study.json") if args.from_study else args.run
+    run = median_run(REPORTS_DIR / "seed_study.json") if args.from_study else args.run
 
     written = publish(run)
     manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))

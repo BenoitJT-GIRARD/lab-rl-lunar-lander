@@ -135,7 +135,7 @@ def test_a_single_seed_reports_no_spread(tiny_model) -> None:  # type: ignore[no
 
 
 def test_the_manifest_names_the_artefact_and_not_the_machine(tmp_path: Path) -> None:
-    """The first version published an absolute path to the author's own working folder."""
+    """A manifest naming a checkpoint by a path outside the repository names nothing."""
     output = write_manifest(
         tmp_path / "manifest.json",
         model_path=Path("models/ppo/best.zip"),

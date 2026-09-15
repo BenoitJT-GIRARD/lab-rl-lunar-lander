@@ -16,7 +16,7 @@ leaves the frame. That is what is read here.
 **One seed is not a measurement.** A single evaluation seed produces a mean, a spread and
 a success rate that look like properties of the model and are properties of the draw.
 :func:`evaluate_seeds` runs the same collection over several seed grids so the dispersion
-can be published instead of implied.
+can be published and never implied.
 """
 
 from __future__ import annotations
@@ -74,7 +74,7 @@ def run_episodes(
 ) -> list[EpisodeRecord]:
     """Run ``n_episodes``, each reset with its own seed, and capture the telemetry.
 
-    Seeding per episode rather than once means the whole collection replays exactly: the
+    Seeding per episode, and not once for the collection, is what makes it replay exactly: the
     grid is ``seed`` through ``seed + n_episodes - 1``, and every row records which one it
     came from.
     """
@@ -152,7 +152,7 @@ def summarise(records: Sequence[EpisodeRecord]) -> dict[str, float]:
         # Sample standard deviation, ddof=1. The hundred episodes are a sample of the
         # initial conditions, not the population of them, and the dashboard's pandas
         # default is the same — two views of one collection must not disagree. One episode
-        # has no dispersion to estimate, and nan says that rather than pretending to zero.
+        # has no dispersion to estimate; nan says so, where a zero would claim a certainty.
         "std_reward": float(rewards.std(ddof=1)) if len(rewards) > 1 else float("nan"),
         "min_reward": float(rewards.min()),
         "max_reward": float(rewards.max()),
@@ -266,7 +266,7 @@ def write_manifest(
     import gymnasium
     import stable_baselines3
 
-    # Relative to the repository, so the manifest says which artefact rather than which
+    # Relative to the repository, so the manifest names an artefact and not a
     # machine.
     try:
         model = model_path.resolve().relative_to(Path.cwd().resolve())

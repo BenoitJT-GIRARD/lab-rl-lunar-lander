@@ -27,7 +27,7 @@ ACTION_LABELS: dict[int, str] = {
     3: "right_engine",
 }
 
-#: The checkpoint loaders, by name. A lookup rather than a two-branch conditional: with
+#: The checkpoint loaders, by name. A lookup, and not a two-branch conditional: with
 #: ``PPO if algorithm == "ppo" else DQN``, every value that was not exactly ``"ppo"`` --
 #: including a typo -- meant DQN, and the failure surfaced much later as a shape mismatch.
 ALGORITHMS: dict[str, type[BaseAlgorithm]] = {"ppo": PPO, "dqn": DQN}
@@ -48,8 +48,8 @@ class EpisodeResult:
 
     total_reward: float
     length: int
-    #: The lander came to rest, read from the environment's terminal reward. Not the same
-    #: question as whether the score cleared 200, and the two are kept apart.
+    #: The lander came to rest. Read from the sign the environment pays on termination, and
+    #: never from whether the score cleared 200: the two are different questions.
     landed: bool
     #: The episode ended by itself rather than hitting the step limit. A truncated episode
     #: neither landed nor crashed: it ran out of time still flying.
@@ -90,7 +90,7 @@ class LunarLanderAgent:
         The spaces are part of the saved model, and comparing them at load costs one
         ``gym.make``. Without it a LunarLander service handed a CartPole checkpoint starts
         cleanly, answers every request, and returns actions drawn from the wrong space --
-        the kind of failure that looks like a bad policy rather than a wrong file.
+        the kind of failure that looks like a bad policy when it is a wrong file.
         """
         env = gym.make(self.env_id)
         try:

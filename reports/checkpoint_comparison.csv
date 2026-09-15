@@ -1,0 +1,5 @@
+run,algorithm,checkpoint,grid_seed,n_episodes,mean_reward,std_reward,min_reward,landing_rate
+var/runs/ppo/seed-45,PPO,best,2024,100,261.8,29.09,122.78,0.97
+var/runs/ppo/seed-45,PPO,final,2024,100,268.14,19.67,222.86,1.0
+var/runs/dqn/seed-42,DQN,best,2024,100,271.13,47.51,34.41,0.96
+var/runs/dqn/seed-42,DQN,final,2024,100,-610.34,222.38,-2495.18,0.0

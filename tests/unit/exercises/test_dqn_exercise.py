@@ -67,8 +67,8 @@ def test_the_buffer_forgets_the_oldest_transition_when_it_is_full() -> None:
 def test_no_gradient_step_before_learning_starts() -> None:
     """`learning_starts` was declared at 1000 and never read.
 
-    Training actually began at `batch_size` transitions, so the first updates were drawn
-    from a handful of near-identical states at the very start of the first episode.
+    Learning must not start before `learning_starts` transitions are in the buffer. The
+    module's header says what the early updates were drawn from when it did.
     """
     cfg = DQNConfig(batch_size=8, learning_starts=64, device="cpu")
     policy, target, optimizer = _nets()

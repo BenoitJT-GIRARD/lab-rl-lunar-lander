@@ -17,7 +17,9 @@ import pytest
 from rl_lander.record_video import Take, _assemble, _crossfade, record_landing
 from rl_lander.replay import replay_matches
 from rl_lander.training.evaluate import SOLVED_THRESHOLD
-from rl_lander.utils import DATA_DIR, DEFAULT_MODEL_PATH, ROOT_DIR
+from rl_lander.utils import DEFAULT_MODEL_PATH, REPORTS_DIR, ROOT_DIR
+
+pytestmark = [pytest.mark.integration, pytest.mark.claim]
 
 FRAME_SHAPE = (4, 6, 3)
 
@@ -139,7 +141,7 @@ def test_the_cockpit_detects_a_replay_that_is_not_the_same_episode() -> None:
 
 @pytest.fixture(scope="module")
 def published_summary() -> dict:
-    path = DATA_DIR / "evaluation_summary.json"
+    path = REPORTS_DIR / "evaluation_summary.json"
     if not path.exists():
         pytest.skip("no evaluation export in this checkout")
     return json.loads(path.read_text(encoding="utf-8"))
@@ -152,7 +154,7 @@ def _published_episodes() -> list[dict[str, str]]:
     warnings as errors the ResourceWarning fails the test that reads it -- which is the
     rule doing its job on this suite rather than on a dependency.
     """
-    with (DATA_DIR / "evaluation_episodes.csv").open(encoding="utf-8", newline="") as handle:
+    with (REPORTS_DIR / "evaluation_episodes.csv").open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
 
 
@@ -183,7 +185,7 @@ def test_every_published_episode_records_the_seed_that_replays_it(published_summ
 
 
 def test_the_manifest_points_at_the_policy_that_was_evaluated() -> None:
-    path = DATA_DIR / "evaluation_manifest.json"
+    path = REPORTS_DIR / "evaluation_manifest.json"
     if not path.exists():
         pytest.skip("no evaluation export in this checkout")
     manifest = json.loads(path.read_text(encoding="utf-8"))
@@ -198,7 +200,7 @@ def test_the_headline_claim_holds_on_every_evaluation_seed(published_summary: di
     """The README says the policy solves the environment. This is that sentence, as a test.
 
     The claim is about the *mean* over 100 episodes, and it is checked on every seed grid
-    that was run -- not only on the one whose episodes are exported, which is the most
+    the exporter scored, and never on the exported one alone, which is the most
     favourable of them.
     """
     across = published_summary.get("across_seeds")
@@ -215,10 +217,11 @@ def test_the_headline_claim_holds_on_every_evaluation_seed(published_summary: di
 
 
 def test_the_published_run_is_the_median_not_the_best(tmp_path: Path) -> None:
-    """Publishing the best of five and printing the mean of five beside it would be a third
-    way of choosing the number after having seen it. The median run is the one whose score
-    the published dispersion actually describes."""
-    from scripts.publish_run import median_run
+    """Given five means, the promoted run is the median one and never the highest.
+
+    The rule, and the reason it is a rule rather than a judgement, are in the docstring of
+    `median_run`; what is asserted here is that the function obeys it."""
+    from publish_run import median_run
 
     study = tmp_path / "seed_study.json"
     study.write_text(
@@ -238,7 +241,7 @@ def test_the_published_run_is_the_median_not_the_best(tmp_path: Path) -> None:
 
 def test_a_tie_between_two_runs_is_broken_by_the_seed(tmp_path: Path) -> None:
     """So the choice is a function of the artefact, not of filesystem ordering."""
-    from scripts.publish_run import median_run
+    from publish_run import median_run
 
     study = tmp_path / "seed_study.json"
     study.write_text(
@@ -258,7 +261,8 @@ def test_a_tie_between_two_runs_is_broken_by_the_seed(tmp_path: Path) -> None:
 def test_publishing_from_a_study_that_does_not_exist_says_which_command_makes_it(
     tmp_path: Path,
 ) -> None:
-    from scripts.publish_run import median_run
+
+    from publish_run import median_run
 
     with pytest.raises(SystemExit, match="aggregate_study"):
         median_run(tmp_path / "absent.json")

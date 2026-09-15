@@ -13,23 +13,19 @@ Passing several seeds runs the same collection on each grid and reports the spre
 single grid gives one draw; the mean is stable across draws and the dispersion, the worst
 episode and the landing rate are not.
 
-Writes `data/evaluation_episodes.csv`, `data/evaluation_summary.json` and
-`data/evaluation_manifest.json`.
+Writes `reports/evaluation_episodes.csv`, `reports/evaluation_summary.json` and
+`reports/evaluation_manifest.json`.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+from stable_baselines3 import PPO
 
-from stable_baselines3 import PPO  # noqa: E402
-
-from rl_lander.training.evaluate import (  # noqa: E402
+from rl_lander.training.evaluate import (
     SOLVED_THRESHOLD,
     evaluate_seeds,
     run_episodes,
@@ -37,7 +33,7 @@ from rl_lander.training.evaluate import (  # noqa: E402
     write_csv,
     write_manifest,
 )
-from rl_lander.utils import DATA_DIR, DEFAULT_MODEL_PATH, ensure_dirs  # noqa: E402
+from rl_lander.utils import DEFAULT_MODEL_PATH, REPORTS_DIR, ensure_dirs
 
 #: The grid whose episodes are exported. The first entry is the canonical collection: the
 #: CSV, the summary and the dashboard all read it.
@@ -78,7 +74,7 @@ def main() -> None:
         evaluate_seeds(model, args.seeds, n_episodes=args.episodes) if len(args.seeds) > 1 else None
     )
 
-    summary_path = DATA_DIR / "evaluation_summary.json"
+    summary_path = REPORTS_DIR / "evaluation_summary.json"
     summary_path.write_text(
         json.dumps(
             {
@@ -92,7 +88,7 @@ def main() -> None:
     )
 
     manifest_path = write_manifest(
-        DATA_DIR / "evaluation_manifest.json",
+        REPORTS_DIR / "evaluation_manifest.json",
         model_path=args.model,
         algorithm="PPO",
         seeds=args.seeds,

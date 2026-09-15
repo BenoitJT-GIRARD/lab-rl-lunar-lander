@@ -26,20 +26,17 @@ Runs that already carry a manifest are skipped, so the grid resumes after an int
 from __future__ import annotations
 
 import argparse
-import sys
 import time
 from dataclasses import replace
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-
-from rl_lander.training.hyperparameters import (  # noqa: E402
+from rl_lander.training.hyperparameters import (
     DQNHyperParameters,
     PPOHyperParameters,
 )
-from rl_lander.training.train_lunarlander import train_dqn, train_ppo  # noqa: E402
-from rl_lander.utils import run_dir  # noqa: E402
+from rl_lander.training.train_lunarlander import train_dqn, train_ppo
+from rl_lander.utils import ROOT_DIR as ROOT
+from rl_lander.utils import run_dir
 
 #: The seeds whose spread is published as the method's variability.
 BASELINE_SEEDS = (42, 43, 44, 45, 46)
@@ -55,8 +52,9 @@ TRIALS = {
 #: Equal step budget for DQN. Its own default is 200_000, which would turn the comparison
 #: into a statement about budget rather than about algorithm.
 #:
-#: Read from an *instance*. The hyper-parameter classes use `slots=True`, and on a slotted
-#: dataclass the class attribute is the slot descriptor, not the default value -- so
+#: Read from an *instance*, for the reason the comment beside the same field in
+#: `training/hyperparameters.py` gives: on a slotted dataclass the class attribute is not a
+#: value, so
 #: `PPOHyperParameters.total_timesteps` is a `member_descriptor`. It passes through the
 #: constructor without complaint and fails eight hundred lines later, inside SB3, on
 #: `while self.num_timesteps < total_timesteps`.

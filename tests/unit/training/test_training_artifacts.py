@@ -69,14 +69,14 @@ def test_a_run_that_never_improved_says_so_instead_of_shipping_its_final_state(
 
 def test_publishing_refuses_a_run_that_never_improved(tiny_run: Path) -> None:
     """Otherwise an untrained policy ends up behind the README's figures."""
-    from scripts.publish_run import publish
+    from publish_run import publish
 
     with pytest.raises(SystemExit, match="never improved"):
         publish(tiny_run)
 
 
 def test_publishing_refuses_a_directory_that_is_not_a_finished_run(tmp_path: Path) -> None:
-    from scripts.publish_run import publish
+    from publish_run import publish
 
     with pytest.raises(SystemExit, match="not a finished run"):
         publish(tmp_path)

@@ -1,13 +1,12 @@
 """Streamlit cockpit: one episode of the autopilot, played and explained.
 
-Inference stays on the API side when the service is reachable; the GUI asks ``POST /run``
-for the trajectory and rebuilds the pictures locally, because shipping a thousand frames of
-600x400 RGB over HTTP to draw them is not a design, it is a bill.
+Inference stays on the API side when the service is reachable. The page asks ``POST /run`` for
+the trajectory and draws the frames itself, for the reason :mod:`rl_lander.replay` gives, and
+it shows whether the two describe the same episode.
 
-Rebuilding the pictures locally is only legitimate if the local replay *is* the episode the
-service ran. It is checked rather than assumed: the replay compares its own reward sequence
-against the one the API returned, and says so when they differ. A silent divergence would
-put an animation of one episode next to the metrics of another.
+Drawing the frames here rather than receiving them is only defensible while the two describe
+one episode, and :mod:`rl_lander.replay` says how that is established. This page shows the
+answer, and refuses to present the animation as the flight when it is negative.
 """
 
 from __future__ import annotations
@@ -111,8 +110,8 @@ def _metrics_panel(payload: dict[str, Any], source: str) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Cockpit", page_icon=":rocket:", layout="wide")
-    st.title(":rocket: Lunar landing cockpit")
+    st.set_page_config(page_title="Cockpit", layout="wide")
+    st.title("Lunar landing cockpit")
     st.caption(
         "One episode of the trained autopilot. Inference runs on the FastAPI service when "
         "it is reachable, and on the local checkpoint otherwise."
@@ -124,7 +123,7 @@ def main() -> None:
         seed = st.number_input("Seed", min_value=0, max_value=10_000, value=42, step=1)
         prefer_api = st.toggle("Prefer the API backend", value=True)
         fps = st.slider("Replay FPS", min_value=10, max_value=60, value=30)
-        launch = st.button(":satellite: Run episode", use_container_width=True)
+        launch = st.button("Run episode", use_container_width=True)
         st.divider()
         st.markdown(
             "**Action space**\n\n"

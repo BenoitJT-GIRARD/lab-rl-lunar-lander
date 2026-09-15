@@ -2,18 +2,18 @@
 
 Reads every manifest under ``models/`` and writes:
 
-``data/seed_study.json``
+``reports/seed_study.json``
     The five baseline seeds, their spread, and the DQN run at the same step budget. This is
     the transportable number: a single run's score is a draw, and the repository used to
     publish one as if it were the method's.
 
-``data/hyperparameter_trials.csv``
+``reports/hyperparameter_trials.csv``
     One row per single-parameter trial, scored by the same protocol as the baseline. It
     replaces a table of "~280", "< 200", "~270" that nothing produced. The column that
     matters is the last one: whether the difference from the baseline is larger than the
     spread the baselines themselves show. Below that, a trial says nothing.
 
-``data/learning_curve_band.csv``
+``reports/learning_curve_band.csv``
     The median training curve across the five seeds with its interquartile band, on a
     common timestep grid. A single trajectory is not a learning curve.
 
@@ -24,16 +24,13 @@ from __future__ import annotations
 
 import csv
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
-
-from rl_lander.utils import DATA_DIR, MODELS_DIR  # noqa: E402
+from rl_lander.utils import REPORTS_DIR, RUNS_DIR
+from rl_lander.utils import ROOT_DIR as ROOT
 
 #: The grid the curves are resampled onto, so five runs that logged at slightly different
 #: timesteps can be summarised column by column.
@@ -43,7 +40,7 @@ CURVE_GRID = np.arange(10_000, 1_000_001, 10_000)
 def _runs() -> list[dict]:
     """Every finished run, with its manifest and where it lives."""
     found = []
-    for manifest in sorted(MODELS_DIR.glob("*/seed-*/manifest.json")):
+    for manifest in sorted(RUNS_DIR.glob("*/seed-*/manifest.json")):
         payload = json.loads(manifest.read_text(encoding="utf-8"))
         payload["run"] = manifest.parent.relative_to(ROOT).as_posix()
         payload["variant"] = manifest.parent.name.partition("-")[2].partition("-")[2] or None
@@ -82,10 +79,20 @@ def _seed_study(baselines: list[dict], dqn: list[dict]) -> dict:
                 "landing_rate": run["landing_rate"],
                 "threshold_rate": run["threshold_rate"],
                 "min_reward": round(run["min_reward"], 2),
+                # Published beside the reward because a short episode is a fast landing or a
+                # crash, and the DQN comparison is where the difference shows.
+                "mean_length": round(run.get("mean_length", 0.0), 1),
                 "run": run["run"],
             }
             for run in baselines
         ],
+        # The mean landing rate of the five, as the proportion metrics.yaml defines: the
+        # README compares it with the single run's and with the DQN's, and a table whose
+        # numbers live in no file is a table nobody can check.
+        "mean_landing_rate": (
+            round(float(np.mean([r["landing_rate"] for r in baselines])), 3)
+            if baselines else None
+        ),
         "mean_of_runs": round(float(means.mean()), 2) if len(means) else None,
         # Between *training* runs. The dispersion inside one run, across evaluation
         # episodes, is a different quantity and lives in evaluation_summary.json. Reporting
@@ -101,6 +108,8 @@ def _seed_study(baselines: list[dict], dqn: list[dict]) -> dict:
                 "mean_reward": round(run["mean_reward"], 2),
                 "std_reward": round(run["std_reward"], 2),
                 "landing_rate": run["landing_rate"],
+                "min_reward": round(run["min_reward"], 2),
+                "mean_length": round(run.get("mean_length", 0.0), 1),
                 "run": run["run"],
             }
             for run in dqn
@@ -122,6 +131,9 @@ def _trials_csv(baselines: list[dict], trials: list[dict], output: Path) -> Path
                 "changed",
                 "value",
                 "seed",
+                # How many episodes the mean is over. A delta between two means says nothing
+                # until the reader knows what each was measured on.
+                "n_episodes",
                 "total_timesteps",
                 "mean_reward",
                 "std_reward",
@@ -137,13 +149,14 @@ def _trials_csv(baselines: list[dict], trials: list[dict], output: Path) -> Path
                 "",
                 "",
                 f"{len(baselines)} seeds",
+                int(sum(r["n_episodes"] for r in baselines)) if baselines else "",
                 baselines[0]["total_timesteps"] if baselines else "",
                 round(baseline_mean, 2),
                 round(spread, 2),
                 round(float(np.mean([r["landing_rate"] for r in baselines])), 3),
                 0.0,
                 "",
-                "models/ppo/seed-*",
+                "var/runs/ppo/seed-*",
             ]
         )
         for run in trials:
@@ -156,6 +169,7 @@ def _trials_csv(baselines: list[dict], trials: list[dict], output: Path) -> Path
                     changed,
                     value,
                     run["seed"],
+                    int(run["n_episodes"]),
                     run["total_timesteps"],
                     round(run["mean_reward"], 2),
                     round(run["std_reward"], 2),
@@ -205,7 +219,7 @@ def main() -> None:
     runs = _runs()
     if not runs:
         raise SystemExit(
-            "No finished run under models/. Train the grid first: "
+            "No finished run under var/runs/. Train the grid first: "
             "`uv run python scripts/train_study.py`."
         )
 
@@ -219,14 +233,14 @@ def main() -> None:
     dqn = sorted((r for r in runs if r["algorithm"] == "DQN"), key=lambda r: r["seed"])
 
     study = _seed_study(baselines, dqn)
-    study_path = DATA_DIR / "seed_study.json"
+    study_path = REPORTS_DIR / "seed_study.json"
     study_path.parent.mkdir(parents=True, exist_ok=True)
     study_path.write_text(json.dumps(study, indent=2) + "\n", encoding="utf-8")
 
     written = [study_path]
     if trials and baselines:
-        written.append(_trials_csv(baselines, trials, DATA_DIR / "hyperparameter_trials.csv"))
-    band = _curve_band(baselines, DATA_DIR / "learning_curve_band.csv")
+        written.append(_trials_csv(baselines, trials, REPORTS_DIR / "hyperparameter_trials.csv"))
+    band = _curve_band(baselines, REPORTS_DIR / "learning_curve_band.csv")
     if band is not None:
         written.append(band)
 

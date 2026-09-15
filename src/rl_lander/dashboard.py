@@ -1,6 +1,6 @@
 """Streamlit dashboard over the evaluation run.
 
-Reads `data/evaluation_episodes.csv` and `data/training_curves.csv`, and shows the training
+Reads `reports/evaluation_episodes.csv` and `reports/training_curves.csv`, and shows the training
 curve, the aggregate metrics, the per-episode telemetry behind filters, and how the reward
 relates to engine use.
 
@@ -16,9 +16,35 @@ import plotly.express as px
 import streamlit as st
 
 from rl_lander.artifacts import CURVE_COLUMNS, EVALUATION_COLUMNS, read_table
+from rl_lander.figure_style import PALETTE, STATE
 from rl_lander.utils import EVALUATION_CSV, TRAINING_CURVES_CSV
 
-OUTCOME_COLOURS = {"landed": "#1f9d55", "did not land": "#c81e1e"}
+#: Two outcomes, two state colours, taken by name from the palette the figures read. The page
+#: used a green and a red of its own, which meant nothing shared between this dashboard and
+#: the figures of the README.
+OUTCOME_COLOURS = {"landed": STATE["ok"], "did not land": STATE["danger"]}
+
+#: What every chart of this page is drawn with. Plotly takes nothing from the Streamlit theme,
+#: so a figure left to itself arrives in the library's defaults on a page painted otherwise.
+LAYOUT = {
+    "paper_bgcolor": PALETTE["paper"],
+    "plot_bgcolor": PALETTE["paper"],
+    "font": {"color": PALETTE["ink"], "size": 13},
+    "margin": {"t": 50, "b": 40, "l": 10, "r": 10},
+}
+AXIS = {
+    "gridcolor": PALETTE["grid"],
+    "zerolinecolor": PALETTE["grid"],
+    "linecolor": PALETTE["muted"],
+}
+
+
+def _styled(figure, x_title: str, y_title: str):
+    """One place where a chart of this page gets its colours and its axis titles."""
+    figure.update_layout(**LAYOUT)
+    figure.update_xaxes(title_text=x_title, **AXIS)
+    figure.update_yaxes(title_text=y_title, **AXIS)
+    return figure
 
 
 def _with_outcome(frame: pd.DataFrame) -> pd.DataFrame:
@@ -53,12 +79,18 @@ def _kpi_row(frame: pd.DataFrame) -> None:
 
 
 def _training_section(curves: pd.DataFrame) -> None:
-    st.subheader(":chart_with_upwards_trend: Training progress")
+    st.subheader("Training progress")
     st.caption(
         "`ep_rew_mean` is a rolling mean over episodes finished during training, under a "
         "stochastic policy. It is a progress signal, not the evaluation result."
     )
-    fig = px.line(curves, x="timesteps", y="ep_rew_mean", title="Rolling mean reward")
+    fig = px.line(
+        curves,
+        x="timesteps",
+        y="ep_rew_mean",
+        title="Rolling mean reward",
+        color_discrete_sequence=[PALETTE["primary"]],
+    )
     for sign, name in ((1, "+1 std"), (-1, "-1 std")):
         fig.add_scatter(
             x=curves["timesteps"],
@@ -67,14 +99,14 @@ def _training_section(curves: pd.DataFrame) -> None:
             name=name,
             line={"dash": "dot"},
         )
-    fig.update_layout(yaxis_title="Reward", xaxis_title="Timesteps")
+    _styled(fig, "Timesteps of training", "Mean reward over the last 100 episodes")
     st.plotly_chart(fig, use_container_width=True)
 
 
 def _filters(frame: pd.DataFrame) -> pd.DataFrame:
     """Collect the sidebar filters and return the frame every section will use."""
     with st.sidebar:
-        st.header(":mag: Filters")
+        st.header("Filters")
         outcome = st.selectbox(
             "Outcome", options=["All episodes", "Landed only", "Did not land"], index=0
         )
@@ -104,7 +136,7 @@ def _filters(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def _episode_section(frame: pd.DataFrame) -> None:
-    st.subheader(":telescope: Per-episode telemetry")
+    st.subheader("Per-episode telemetry")
     coloured = _with_outcome(frame)
 
     col_a, col_b = st.columns(2)
@@ -117,6 +149,7 @@ def _episode_section(frame: pd.DataFrame) -> None:
             color="outcome",
             color_discrete_map=OUTCOME_COLOURS,
         )
+        _styled(fig, "Total reward of the episode", "Episodes")
         st.plotly_chart(fig, use_container_width=True)
     with col_b:
         fig = px.scatter(
@@ -129,15 +162,19 @@ def _episode_section(frame: pd.DataFrame) -> None:
             title="Where the lander came to rest (size = main-engine firings)",
             color_discrete_map=OUTCOME_COLOURS,
         )
-        fig.add_vline(x=-0.1, line_dash="dot", line_color="grey")
-        fig.add_vline(x=0.1, line_dash="dot", line_color="grey")
+        # The pad: the band of horizontal positions that count as on target. Dashed, because
+        # it is a reference and not a series, and the palette reserves the dash for exactly
+        # that.
+        fig.add_vline(x=-0.1, line_dash="dot", line_color=PALETTE["reference"])
+        fig.add_vline(x=0.1, line_dash="dot", line_color=PALETTE["reference"])
+        _styled(fig, "Horizontal position at rest", "Altitude at rest")
         st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(frame, use_container_width=True, height=320)
 
 
 def _engine_section(frame: pd.DataFrame) -> None:
-    st.subheader(":joystick: Engine use")
+    st.subheader("Engine use")
     st.caption(
         "Both engines, not only the main one. The side thrusters cost fuel and the reward "
         "function charges for them."
@@ -166,17 +203,13 @@ def _engine_section(frame: pd.DataFrame) -> None:
         title="Mean reward by total engine firings (quartiles)",
     )
     fig.update_traces(textposition="outside")
-    fig.update_layout(xaxis_title="Total firings", yaxis_title="Mean reward")
+    _styled(fig, "Engine firings in the episode", "Mean reward")
     st.plotly_chart(fig, use_container_width=True)
 
 
 def main() -> None:
-    st.set_page_config(
-        page_title="Performance dashboard",
-        page_icon=":bar_chart:",
-        layout="wide",
-    )
-    st.title(":bar_chart: Performance dashboard")
+    st.set_page_config(page_title="Performance dashboard", layout="wide")
+    st.title("Performance dashboard")
     st.caption("Training and evaluation of the autopilot. The sidebar filters every panel.")
 
     curves, curves_problem = read_table(TRAINING_CURVES_CSV, CURVE_COLUMNS)

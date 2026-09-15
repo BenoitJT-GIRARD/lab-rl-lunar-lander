@@ -19,14 +19,28 @@ duration cannot be reached, the result says so and gives what there is.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
+import subprocess
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 import imageio.v2 as imageio
 import numpy as np
 
 from rl_lander.agent import LunarLanderAgent
-from rl_lander.utils import DEFAULT_MODEL_PATH, VIDEOS_DIR, ensure_dirs
+from rl_lander.utils import DEFAULT_MODEL_PATH, IMAGES_DIR, ROOT_DIR, VIDEOS_DIR, ensure_dirs
+
+#: The published animation, and the only artefact of this module a document shows. The clip
+#: itself stays under `var/`: it is 588 KB of H.264 that no page embeds, and a repository
+#: publishes what it shows.
+PUBLISHED_GIF = IMAGES_DIR / "landing.gif"
+
+#: The GIF is decimated and capped. A twenty-five-second clip at fifty frames a second is
+#: nine megabytes of GIF, which nobody waits for on a README.
+GIF_FPS = 20
+GIF_SECONDS = 8.0
 
 
 @dataclass(slots=True)
@@ -151,10 +165,12 @@ def record_landing(
     if len(sequence) > max_frames:
         sequence = sequence[:max_frames]
     imageio.mimsave(str(output), sequence, fps=fps, codec="libx264", quality=8)
+    gif = write_gif(sequence, fps)
 
     landed_count = sum(1 for take in selected if take.landed)
     return {
         "output": str(output),
+        "gif": str(gif),
         "episodes": [
             {"seed": t.seed, "total_reward": round(t.total_reward, 2), "landed": t.landed}
             for t in selected
@@ -171,6 +187,60 @@ def record_landing(
         "reached_target_duration": len(sequence) >= min_frames,
         "shows_a_landing": landed_count > 0,
     }
+
+
+def write_gif(sequence: list[np.ndarray], fps: int, output: Path = PUBLISHED_GIF) -> Path:
+    """Write the animation a document can embed, decimated from the clip's own frames.
+
+    Same frames, fewer of them: the GIF is what the README shows, and it has to be small
+    enough that a reader sees it before they scroll past. It is written beside the
+    screenshots and declared in the same manifest, because a picture nobody can regenerate
+    is a picture nobody can check.
+    """
+    output.parent.mkdir(parents=True, exist_ok=True)
+    step = max(1, round(fps / GIF_FPS))
+    decimated = sequence[::step][: int(GIF_SECONDS * GIF_FPS)]
+    # The GIF plugin takes a per-frame duration in milliseconds; `fps` is deprecated there
+    # and, with warnings turned into errors, deprecated means the test suite fails.
+    imageio.mimsave(str(output), decimated, duration=1000 / GIF_FPS, loop=0)
+    _declare_gif(output, len(decimated))
+    return output
+
+
+def _declare_gif(image: Path, frames: int) -> None:
+    """Record what this animation shows, in the manifest the screenshots share."""
+    manifest = IMAGES_DIR / "MANIFEST.json"
+    payload: dict = {"schema": "image-manifest/1", "images": {}}
+    if manifest.exists():
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+    payload.setdefault("schema", "image-manifest/1")
+    payload.setdefault("images", {})
+    revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT_DIR, capture_output=True, text=True, check=False
+    ).stdout.strip()
+    payload["images"][image.name] = {
+        "sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
+        "written": datetime.now(tz=UTC).date().isoformat(),
+        "source": "src/rl_lander/record_video.py",
+        "command": "uv run python -m rl_lander.record_video",
+        "frames": frames,
+        "fps": GIF_FPS,
+        "app_state": (
+            "the policy committed at models/ppo/best.zip, flown from seed 0 upwards until "
+            "the clip holds at least two landings and reaches twenty-two seconds"
+        ),
+        "data_source": "none: the frames are rendered by the environment during the flight",
+        "demonstrates_behaviour": (
+            "the shipped policy brings the lander down between the flags and comes to rest "
+            "on its legs, which is the claim the landing rate puts a number on"
+        ),
+        "git_revision": revision,
+        "depends_on": ["src/rl_lander/record_video.py", "models/ppo/best.zip"],
+    }
+    payload["images"] = dict(sorted(payload["images"].items()))
+    manifest.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline=""
+    )
 
 
 def _parse_args() -> argparse.Namespace:
@@ -195,6 +265,7 @@ def main() -> None:  # pragma: no cover - CLI helper
         fps=args.fps,
     )
     print(f"{info['output']} — {info['seconds']} s, {info['frames']} frames")
+    print(f"{info['gif']} — published animation, declared in docs/images/MANIFEST.json")
     for episode in info["episodes"]:
         state = "landed" if episode["landed"] else "did not land"
         print(f"  seed {episode['seed']}: {episode['total_reward']:.1f}, {state}")

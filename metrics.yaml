@@ -1,0 +1,156 @@
+# The legend of this repository's tables.
+#
+# One key per numeric column that reaches a page. `sd`, `landing_rate` and
+# `delta_vs_baseline` are labels, not definitions: on their own they leave a reader guessing
+# what was measured, over how many episodes, and which direction is good. Keeping the answer
+# here, and not in a variable name, is what lets the README, `docs/protocol.md` and the
+# dashboard agree without any of them restating it.
+#
+# The entries with a `±` are the ones this repository exists for. Three different dispersions
+# appear in its tables, and each entry below says which of the three its `±` covers.
+
+metrics:
+
+  mean_reward:
+    definition: >-
+      The arithmetic mean of the total reward over the episodes of one evaluation grid, for
+      one policy.
+    unit: "reward units of LunarLander-v3"
+    direction: higher_is_better
+    anchor: "261.80 — reports/evaluation_summary.json#metrics.mean_reward"
+    business_reading: >-
+      How well the shipped autopilot flies, on the grid whose episodes are published row by
+      row. Gymnasium calls the task solved above 200, so this policy clears it with room.
+    source: "scripts/evaluate_and_export.py, 100 episodes on grid seed 2024"
+    uncertainty: >-
+      Reported beside `sd_across_episodes`, which disperses the 100 episodes of this grid.
+      It is the least interesting of the three dispersions and says nothing about the method.
+
+  sd_across_episodes:
+    definition: >-
+      The standard deviation of the total reward over the episodes of one grid, one policy.
+    unit: "reward units of LunarLander-v3"
+    direction: target
+    anchor: "29.09 — reports/evaluation_summary.json#metrics.std_reward"
+    business_reading: >-
+      How much one landing differs from the next with the policy held fixed. A small number
+      here means a consistent pilot, not a good method.
+    source: "scripts/evaluate_and_export.py, over the same 100 episodes"
+    uncertainty: >-
+      A population standard deviation over the 100 episodes of the grid, with no interval
+      around it: it describes those episodes and estimates nothing beyond them.
+
+  sd_between_runs:
+    definition: >-
+      The standard deviation of the per-run mean reward over five trainings identical but for
+      their seed, each already averaged over its own 100 episodes.
+    unit: "reward units of LunarLander-v3"
+    direction: target
+    anchor: "13.32 — reports/seed_study.json#spread_between_runs"
+    business_reading: >-
+      What retraining this configuration gets you. It is the transportable number, and the
+      one a reader should carry away: another run of the same recipe lands in that range.
+    source: "scripts/aggregate_study.py, over seeds 42 to 46 at one million steps each"
+    uncertainty: >-
+      Five points. Enough to show the training seed matters and to publish a spread, not
+      enough to put an interval on that spread; `docs/protocol.md` says twenty would be right.
+
+  sd_across_grids:
+    definition: >-
+      The standard deviation of the mean reward over six independent evaluation grids, with
+      the policy held fixed.
+    unit: "reward units of LunarLander-v3"
+    direction: target
+    anchor: "3.33 — reports/evaluation_summary.json#across_seeds"
+    business_reading: >-
+      How much of a published score is an accident of which episodes were drawn to measure it.
+      Four times smaller than the spread between trainings, which is the finding.
+    source: "scripts/evaluate_and_export.py, grids 2024, 7, 99, 123, 555, 31337"
+    uncertainty: >-
+      Six points, each itself a mean over 100 episodes. The mean is stable to about a point;
+      the worst episode is not, and moves from 123 to 227 across the same six.
+
+  landing_rate:
+    definition: >-
+      The share of episodes the lander finished at rest on the ground, read from the
+      environment's terminal reward of +100 and never from the score.
+    unit: "proportion, 0 to 1"
+    direction: higher_is_better
+    anchor: "0.97 — reports/evaluation_summary.json#metrics.landing_rate"
+    business_reading: >-
+      Ninety-seven landings out of a hundred, three of which ended otherwise. For an autopilot
+      this is the number that matters more than the mean, because a mean can be carried by
+      good episodes.
+    source: "src/rl_lander/training/evaluate.py, from the terminal reward of each episode"
+    uncertainty: >-
+      A count over 100 episodes, with no interval. Across the six grids it runs from 0.97 to
+      1.00, and that range is the honest statement of what one grid can tell you.
+
+  threshold_rate:
+    definition: "The share of episodes whose total reward cleared Gymnasium's solved threshold of 200."
+    unit: "proportion, 0 to 1"
+    direction: higher_is_better
+    anchor: "0.97 — reports/evaluation_summary.json#metrics.threshold_rate"
+    business_reading: >-
+      How often the flight was not merely successful but comfortably so. It is published
+      beside the landing rate and never merged with it: on seed 44 they differ by two points.
+    source: "src/rl_lander/training/evaluate.py, over the same episodes"
+    uncertainty: >-
+      A count over 100 episodes. The 200 is a property of the task averaged over episodes,
+      which is precisely why it is not used to decide whether a single episode landed.
+
+  worst_episode:
+    definition: "The lowest total reward of the episodes of one grid."
+    unit: "reward units of LunarLander-v3"
+    direction: higher_is_better
+    anchor: "122.78 — reports/evaluation_summary.json#metrics.min_reward"
+    business_reading: >-
+      The flight a passenger would remember. It is the number a landing autopilot would
+      actually be judged on, and the one 100 episodes says least about.
+    source: "scripts/evaluate_and_export.py, the minimum over the grid"
+    uncertainty: >-
+      A single order statistic over 100 draws, so it moves a great deal: 122.78 on the
+      exported grid, 226.51 on grid 99, and a crash at -33.38 on training seed 44.
+
+  episode_length:
+    definition: "The mean number of environment steps before the episode terminated."
+    unit: "steps"
+    direction: target
+    anchor: "322.6 — reports/evaluation_summary.json#metrics.mean_length"
+    business_reading: >-
+      How long the descent takes. Neither high nor low is good on its own: a short episode is
+      a fast landing or a crash, and this is read next to the landing rate.
+    source: "scripts/evaluate_and_export.py, over the exported grid"
+    uncertainty: >-
+      A mean over 100 episodes, with no interval. The DQN comparison is where it earns its
+      place: 212.2 steps against 322.6, for a policy that lands less often.
+
+  engine_firings:
+    definition: >-
+      The mean number of steps on which the main engine, or a side engine, was fired during
+      an episode.
+    unit: "firings per episode"
+    direction: lower_is_better
+    anchor: "143.94 main — reports/evaluation_summary.json#metrics.mean_main_engine_firings"
+    business_reading: >-
+      What the descent costs. Fuel is not modelled by the environment, but firing costs
+      reward, so this is where a high reward and a smooth flight come apart.
+    source: "scripts/evaluate_and_export.py, counted from the action sequence of each episode"
+    uncertainty: >-
+      A mean over 100 episodes. The dashboard bins it against reward, which is the reading
+      that matters: more firings buy a landing up to a point, and cost reward past it.
+
+  delta_vs_baseline:
+    definition: >-
+      The mean reward of a single-parameter trial minus the baseline's mean over its five
+      seeds.
+    unit: "reward units of LunarLander-v3"
+    direction: higher_is_better
+    anchor: "-81.0 for gamma=0.99 — reports/hyperparameter_trials.csv#delta_vs_baseline"
+    business_reading: >-
+      What changing one knob is worth. Read alone it ranks four numbers; read against the
+      13.32 spread between seeds, three of the four differences turn out to be noise.
+    source: "scripts/aggregate_study.py, one seed per trial at the same budget"
+    uncertainty: >-
+      One training run per trial, so the difference carries the whole between-runs dispersion
+      of 13.32. The table's last column states, per row, whether it clears it.

@@ -20,8 +20,8 @@ def test_it_seeds_python_numpy_and_torch_together() -> None:
 
 
 def test_it_pins_cudnn_so_the_autotuner_cannot_change_the_code_path() -> None:
-    """Left benchmarking, cuDNN picks its algorithm by timing -- so the same seed on the
-    same machine can take a different path depending on what else is running."""
+    """Deterministic on, benchmarking off. The docstring of `set_global_seed` says what the
+    autotuner does to a seeded run when it is left to choose by timing."""
     set_global_seed(1)
     assert torch.backends.cudnn.deterministic is True
     assert torch.backends.cudnn.benchmark is False

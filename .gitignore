@@ -1,96 +1,33 @@
-# --- Python ---
+# What this repository does not track.
+#
+# No line begins with `!`: an exception means the previous line ignored something that had to
+# be kept, which is an arbitration a `.gitignore` is not allowed to make.
+
+# Everything a training run writes and no reader opens: checkpoints of the runs that were
+# not shipped, TensorBoard traces, logs, the raw clips the recorder assembles. The only
+# ignored directory. What IS published lives in models/ and reports/, and is tracked.
+var/
+
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# --- Environments ---
 .venv/
 venv/
-env/
-ENV/
-.env
-.envrc
 
-# --- uv ---
-.uv/
-
-# --- IDE ---
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-
-# --- Jupyter ---
-.ipynb_checkpoints/
-*-checkpoint.ipynb
-
-# --- Testing / Linting ---
+# Tool caches
 .pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.tox/
-.nox/
-coverage.xml
-*.cover
-.hypothesis/
 .ruff_cache/
 .mypy_cache/
-.dmypy.json
-dmypy.json
-.bandit
+.ipynb_checkpoints/
 
-# --- Logs / runtime ---
-logs/
-*.log
-tensorboard/
-runs/
-wandb/
-
-# --- Models / artifacts (kept lightweight in repo) ---
-# Per-run artefacts: one directory per algorithm and seed. A run is 148 KB of weights
-# reproducible from its seed and the code, so it stays out of the history; only the
-# shipped policy, models/ppo/best.zip, is tracked.
-models/*/seed-*/
-*.tar.gz
-*.pkl
-*.npy
-
-# --- Streamlit ---
+# Secrets. `.env.example` is tracked and is not matched by this line: it is `.env` exactly,
+# so keeping the example needs no exception.
+.env
 .streamlit/secrets.toml
 
-# --- OS / temp ---
-*.tmp
-*.bak
-*.orig
-*.rej
-
-# --- Project-specific ---
-infos/
-data/raw/
-videos/raw/
-*.mp4.tmp
-# Packaged deliverables (source copy + video + model), assembled on demand
-report/
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

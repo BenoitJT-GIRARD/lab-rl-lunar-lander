@@ -12,7 +12,7 @@ and all three were wrong in the first version.
 object left in memory when training stopped, and saved it under a name that said ``best``.
 In reinforcement learning the two differ: performance oscillates late in training, and the
 gap is not small. When no evaluation ever improved on the start there is no best
-checkpoint, and the manifest says so rather than passing the final state off as one.
+checkpoint, and the manifest says which of the two it is.
 
 **A model on disk carries the metrics it scored.** They used to be printed and lost.
 
@@ -59,7 +59,7 @@ CANONICAL_EVAL_SEED = 2024
 def _score(model, *, algorithm: str, hp, best_is_final: bool) -> dict:
     """Evaluate a trained policy the same way for every algorithm.
 
-    Uses the project's own collection rather than `evaluate_policy`, so a training metric
+    Uses the project's own collection, and never `evaluate_policy`, so a training metric
     and a published metric are computed by the same code on the same seed grid. The first
     version used one loop here and another in the exporter, and the two disagreed.
     """
@@ -151,7 +151,7 @@ def train_ppo(
     kept = run / "best.zip"
     if not kept.exists():
         # No evaluation ever improved on the start, so there is no best checkpoint. Say so
-        # rather than silently shipping the final model under the other name.
+        # where the earlier version shipped the final model under the other name in silence.
         (run / "final.zip").replace(kept)
         best_is_final = True
     else:
@@ -251,7 +251,7 @@ def main(argv: list[str] | None = None) -> None:  # pragma: no cover - CLI helpe
     # Only the flags actually given are passed, so each dataclass supplies its own
     # defaults. Writing `args.timesteps or PPOHyperParameters.total_timesteps` looks like
     # the same thing and is not: these dataclasses use `slots=True`, and on a slotted
-    # dataclass the class attribute is the slot descriptor rather than the default. The
+    # dataclass the class attribute is the slot descriptor and not the default. The
     # fallback silently produced a `member_descriptor`, which SB3 then compared against an
     # integer, deep inside its training loop.
     overrides = {}

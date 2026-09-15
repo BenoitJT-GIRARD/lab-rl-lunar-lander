@@ -1,0 +1,81 @@
+{
+  "schema": "image-manifest/1",
+  "images": {
+    "api-docs.png": {
+      "sha256": "3f4090a1691caf1988113fedc77ca99e89a99060a43375740a5c1b1d068ec27f",
+      "written": "2026-09-15",
+      "source": "scripts/capture.py",
+      "command": "uv run python scripts/capture.py --only api-docs",
+      "target": "http://127.0.0.1:8000/docs",
+      "viewport": [
+        1280,
+        1000
+      ],
+      "device_scale_factor": 2,
+      "app_state": "the API started from the policy committed at models/ppo/best.zip, and the two Streamlit pages started against it on their own ports",
+      "data_source": "none: the page is generated from the Pydantic models",
+      "demonstrates_behaviour": "the five routes, the eight-number observation the agent routes accept and the trajectory the run route returns are generated from the Pydantic models, so the page a caller reads cannot drift from the contract the service enforces",
+      "git_revision": "c14dd4dcdfcb0bacb9a6eafa18936e4e51eee088",
+      "depends_on": [
+        "src/rl_lander/api.py"
+      ]
+    },
+    "cockpit.png": {
+      "sha256": "2917e69d7ace4df358d08183d90431b7e2caaa7c4a1a970865598eb696d3a9fb",
+      "written": "2026-09-15",
+      "source": "scripts/capture.py",
+      "command": "uv run python scripts/capture.py --only cockpit",
+      "target": "http://127.0.0.1:8601/",
+      "viewport": [
+        1280,
+        1000
+      ],
+      "device_scale_factor": 2,
+      "app_state": "the API started from the policy committed at models/ppo/best.zip, and the two Streamlit pages started against it on their own ports, then one episode flown at seed 42 through the API",
+      "data_source": "the published evaluation under reports/, and episodes the environment generates during the capture; nothing here belongs to anyone else",
+      "demonstrates_behaviour": "the animation is rebuilt locally from the trajectory the service returned, and the page states which of the two computed the metrics beside it; a replay that diverged from the service's episode turns the panel red instead of showing two different flights side by side",
+      "git_revision": "c14dd4dcdfcb0bacb9a6eafa18936e4e51eee088",
+      "depends_on": [
+        "src/rl_lander/gui.py",
+        "src/rl_lander/replay.py"
+      ]
+    },
+    "dashboard.png": {
+      "sha256": "5206043e06431c323951902eca8e798ba72cc6737428a69e5a2ddc0309b1e071",
+      "written": "2026-09-15",
+      "source": "scripts/capture.py",
+      "command": "uv run python scripts/capture.py --only dashboard",
+      "target": "http://127.0.0.1:8602/",
+      "viewport": [
+        1280,
+        1000
+      ],
+      "device_scale_factor": 2,
+      "app_state": "the API started from the policy committed at models/ppo/best.zip, and the two Streamlit pages started against it on their own ports",
+      "data_source": "the published evaluation under reports/, and episodes the environment generates during the capture; nothing here belongs to anyone else",
+      "demonstrates_behaviour": "the hundred episodes of the exported grid, read from a tracked file and not recomputed, with every panel of the page drawing from the same filtered frame",
+      "git_revision": "c14dd4dcdfcb0bacb9a6eafa18936e4e51eee088",
+      "paired_with": "cockpit.png",
+      "depends_on": [
+        "src/rl_lander/dashboard.py",
+        "src/rl_lander/artifacts.py"
+      ]
+    },
+    "landing.gif": {
+      "sha256": "431637ef654525593bf5aec3adc3251534008f5169f1da29340c436b1cd22ca7",
+      "written": "2026-09-15",
+      "source": "src/rl_lander/record_video.py",
+      "command": "uv run python -m rl_lander.record_video",
+      "frames": 160,
+      "fps": 20,
+      "app_state": "the policy committed at models/ppo/best.zip, flown from seed 0 upwards until the clip holds at least two landings and reaches twenty-two seconds",
+      "data_source": "none: the frames are rendered by the environment during the flight",
+      "demonstrates_behaviour": "the shipped policy brings the lander down between the flags and comes to rest on its legs, which is the claim the landing rate puts a number on",
+      "git_revision": "c14dd4dcdfcb0bacb9a6eafa18936e4e51eee088",
+      "depends_on": [
+        "src/rl_lander/record_video.py",
+        "models/ppo/best.zip"
+      ]
+    }
+  }
+}

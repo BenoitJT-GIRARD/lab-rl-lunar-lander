@@ -1,6 +1,6 @@
 """Reading the published exports, and refusing the ones that predate their schema.
 
-The dashboard used to read `data/evaluation_episodes.csv` and index columns as it went, so
+The dashboard used to read `reports/evaluation_episodes.csv` and index columns as it went, so
 a CSV written by an older exporter failed with a `KeyError` halfway down a rendered page --
 after the reader had already seen three panels of a fourth of the data. The schema is
 declared here, checked once, and reported as a sentence.

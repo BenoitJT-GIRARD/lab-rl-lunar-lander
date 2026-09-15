@@ -1,4 +1,4 @@
-"""Integration tests for the FastAPI service.
+"""The FastAPI application object, wired to a real policy on disk.
 
 The fixtures build policies but never train them. A service test asks whether the routing,
 the validation and the failure modes are right; the quality of the policy has nothing to do
@@ -8,7 +8,6 @@ question it never asked.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import gymnasium as gym
@@ -19,6 +18,8 @@ from stable_baselines3 import PPO
 
 from rl_lander.agent import LunarLanderAgent, observation_bounds
 from rl_lander.training.environments import LUNAR_LANDER_ID, make_eval_env
+
+pytestmark = pytest.mark.integration
 
 #: A state the environment could actually produce: hovering, upright, legs free.
 VALID_STATE = [0.0, 1.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -40,12 +41,21 @@ def lander_checkpoint(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 @pytest.fixture(scope="module")
 def client(lander_checkpoint: Path):
-    os.environ["RL_LANDER_MODEL_PATH"] = str(lander_checkpoint)
-    os.environ["RL_LANDER_ALGO"] = "ppo"
+    """The application, serving an untrained policy this module saved.
+
+    The two variables are set through a `MonkeyPatch` context and not by assigning into
+    `os.environ`, because the assignment had no undo: the system tier starts uvicorn as a
+    subprocess, the subprocess inherits this process's environment, and it went on serving
+    the untrained checkpoint of this file — landing nothing, and failing three tests with a
+    reward of -236 that had nothing to do with the shipped policy.
+    """
     from rl_lander.api import create_app
 
-    with TestClient(create_app()) as test_client:
-        yield test_client
+    with pytest.MonkeyPatch.context() as environment:
+        environment.setenv("RL_LANDER_MODEL_PATH", str(lander_checkpoint))
+        environment.setenv("RL_LANDER_ALGO", "ppo")
+        with TestClient(create_app()) as test_client:
+            yield test_client
 
 
 @pytest.fixture
@@ -184,6 +194,7 @@ def test_reset_is_the_same_draw_as_a_plain_env_reset(client: TestClient) -> None
 def test_an_unknown_algorithm_is_refused_rather_than_read_as_dqn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+
     from rl_lander.api import _resolve_algorithm
 
     monkeypatch.setenv("RL_LANDER_ALGO", "xgboost")

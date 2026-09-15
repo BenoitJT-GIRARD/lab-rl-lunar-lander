@@ -44,14 +44,14 @@ from rl_lander.agent import ACTION_LABELS, ALGORITHMS, LunarLanderAgent
 from rl_lander.agent import observation_bounds as _observation_bounds
 from rl_lander.utils import DEFAULT_MODEL_PATH
 
-#: Read from ``LunarLander-v3`` itself rather than restated here, so a change of
+#: Read from ``LunarLander-v3`` itself and never restated here, so a change of
 #: environment cannot leave the service validating against numbers nobody updated.
 OBSERVATION_LOW, OBSERVATION_HIGH = _observation_bounds()
 OBSERVATION_DIM: int = len(OBSERVATION_LOW)
 
-#: Floating-point slack on those bounds. The environment can return a value a hair outside
-#: its own box after integration, and a service that rejects the environment's own output
-#: is worse than one that accepts a rounding error.
+#: Floating-point slack on those bounds. After integration the environment can return a value
+#: a hair outside its own box, and a service that refused it would be refusing the
+#: environment's own output over a rounding error.
 _TOLERANCE: float = 1e-4
 
 router = APIRouter()

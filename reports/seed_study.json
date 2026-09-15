@@ -14,7 +14,8 @@
       "landing_rate": 1.0,
       "threshold_rate": 1.0,
       "min_reward": 217.51,
-      "run": "models/ppo/seed-42"
+      "mean_length": 301.4,
+      "run": "var/runs/ppo/seed-42"
     },
     {
       "seed": 43,
@@ -23,7 +24,8 @@
       "landing_rate": 0.97,
       "threshold_rate": 0.97,
       "min_reward": 111.52,
-      "run": "models/ppo/seed-43"
+      "mean_length": 421.4,
+      "run": "var/runs/ppo/seed-43"
     },
     {
       "seed": 44,
@@ -32,7 +34,8 @@
       "landing_rate": 0.98,
       "threshold_rate": 0.96,
       "min_reward": -33.38,
-      "run": "models/ppo/seed-44"
+      "mean_length": 426.6,
+      "run": "var/runs/ppo/seed-44"
     },
     {
       "seed": 45,
@@ -41,7 +44,8 @@
       "landing_rate": 0.97,
       "threshold_rate": 0.97,
       "min_reward": 122.78,
-      "run": "models/ppo/seed-45"
+      "mean_length": 322.6,
+      "run": "var/runs/ppo/seed-45"
     },
     {
       "seed": 46,
@@ -50,9 +54,11 @@
       "landing_rate": 1.0,
       "threshold_rate": 1.0,
       "min_reward": 224.65,
-      "run": "models/ppo/seed-46"
+      "mean_length": 296.8,
+      "run": "var/runs/ppo/seed-46"
     }
   ],
+  "mean_landing_rate": 0.984,
   "mean_of_runs": 254.14,
   "spread_between_runs": 13.32,
   "worst_run": 237.43,
@@ -65,7 +71,9 @@
       "mean_reward": 271.13,
       "std_reward": 47.51,
       "landing_rate": 0.96,
-      "run": "models/dqn/seed-42"
+      "min_reward": 34.41,
+      "mean_length": 212.2,
+      "run": "var/runs/dqn/seed-42"
     }
   ]
 }
