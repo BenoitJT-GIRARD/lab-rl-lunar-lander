@@ -1,4 +1,4 @@
-"""Exercice 1 — Découverte des blocs de construction du RL avec CartPole-v1.
+"""The loop, the two spaces, and a policy that chooses at random, on CartPole-v1.
 
 The goal is to familiarise ourselves with the canonical
 ``observation -> action -> reward`` loop and with the two fundamental

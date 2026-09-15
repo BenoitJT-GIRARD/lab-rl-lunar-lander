@@ -1,0 +1,53 @@
+{
+  "images": {
+    "dispersions.png": {
+      "axes": [
+        {
+          "title": "Three dispersions a ± can describe, on one policy",
+          "x": "What was allowed to vary",
+          "y": "Standard deviation of the mean reward"
+        }
+      ],
+      "dispersion": "each bar is itself a standard deviation; none is an error bar on another",
+      "dpi": 200,
+      "n": "n(episodes) = 100, n(grids) = 6, n(runs) = 5",
+      "sha256": "c42d91d3779a82a38933fd624b310f1bfa34e33ca88936abb3c8a89caaf0be6c",
+      "source": "scripts/build_figures.py",
+      "style_version": 1,
+      "written": "2026-09-15"
+    },
+    "learning_curve.png": {
+      "axes": [
+        {
+          "title": "Training, read across five seeds rather than one",
+          "x": "Environment steps, in millions",
+          "y": "Episode reward, rolling mean"
+        }
+      ],
+      "dispersion": "band: 25th to 75th percentile across the 5 runs, at each checkpoint",
+      "dpi": 200,
+      "n": "n(runs) = 5, n(points) = 100",
+      "sha256": "3a28ae88b381f16e7b8ff2435a34fdcf1e0cc18b2233fd7d0ae2de9214901865",
+      "source": "scripts/build_figures.py",
+      "style_version": 1,
+      "written": "2026-09-15"
+    },
+    "seed_spread.png": {
+      "axes": [
+        {
+          "title": "Five identical trainings, and the two dispersions they carry",
+          "x": "Mean reward per episode",
+          "y": "Training run"
+        }
+      ],
+      "dispersion": "bars: ±1 SD across 100 evaluation episodes; band: ±13.32, the SD of the 5 run means",
+      "dpi": 200,
+      "n": "n(runs) = 5, n(episodes per run) = 100",
+      "sha256": "7a51faf6ec1a15adffd5123529493f17f621e96f704362078dc4cc6218b33122",
+      "source": "scripts/build_figures.py",
+      "style_version": 1,
+      "written": "2026-09-15"
+    }
+  },
+  "schema": "image-manifest/1"
+}

@@ -20,6 +20,7 @@ import csv
 from pathlib import Path
 
 from rl_lander.agent import LunarLanderAgent
+from rl_lander.artifacts import LINE_TERMINATOR
 from rl_lander.training.evaluate import run_episodes, summarise
 from rl_lander.utils import REPORTS_DIR, ROOT_DIR, RUNS_DIR
 
@@ -31,6 +32,7 @@ GRID_SEED = 2024
 N_EPISODES = 100
 
 DEFAULT_RUNS = (RUNS_DIR / "ppo" / "seed-45", RUNS_DIR / "dqn" / "seed-42")
+
 
 def score(checkpoint: Path, algorithm: str) -> dict:
     """The metrics of one checkpoint on the shared grid."""
@@ -79,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     rows = compare(list(arguments.runs))
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator=LINE_TERMINATOR)
         writer.writeheader()
         writer.writerows(rows)
     print(f"[ok] {OUTPUT.relative_to(ROOT_DIR).as_posix()}")

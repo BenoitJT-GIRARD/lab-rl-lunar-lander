@@ -29,6 +29,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from rl_lander.artifacts import LINE_TERMINATOR, write_json
 from rl_lander.utils import REPORTS_DIR, RUNS_DIR
 from rl_lander.utils import ROOT_DIR as ROOT
 
@@ -90,8 +91,7 @@ def _seed_study(baselines: list[dict], dqn: list[dict]) -> dict:
         # README compares it with the single run's and with the DQN's, and a table whose
         # numbers live in no file is a table nobody can check.
         "mean_landing_rate": (
-            round(float(np.mean([r["landing_rate"] for r in baselines])), 3)
-            if baselines else None
+            round(float(np.mean([r["landing_rate"] for r in baselines])), 3) if baselines else None
         ),
         "mean_of_runs": round(float(means.mean()), 2) if len(means) else None,
         # Between *training* runs. The dispersion inside one run, across evaluation
@@ -124,7 +124,7 @@ def _trials_csv(baselines: list[dict], trials: list[dict], output: Path) -> Path
 
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.writer(handle)
+        writer = csv.writer(handle, lineterminator=LINE_TERMINATOR)
         writer.writerow(
             [
                 "trial",
@@ -211,7 +211,7 @@ def _curve_band(baselines: list[dict], output: Path) -> Path | None:
         }
     )
     output.parent.mkdir(parents=True, exist_ok=True)
-    band.to_csv(output, index=False, float_format="%.4f")
+    band.to_csv(output, index=False, float_format="%.4f", lineterminator=LINE_TERMINATOR)
     return output
 
 
@@ -235,7 +235,7 @@ def main() -> None:
     study = _seed_study(baselines, dqn)
     study_path = REPORTS_DIR / "seed_study.json"
     study_path.parent.mkdir(parents=True, exist_ok=True)
-    study_path.write_text(json.dumps(study, indent=2) + "\n", encoding="utf-8")
+    write_json(study_path, study)
 
     written = [study_path]
     if trials and baselines:

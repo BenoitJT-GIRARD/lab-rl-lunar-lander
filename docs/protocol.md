@@ -54,6 +54,15 @@ it as if it did.
    fails the command when one of them falls short. A published claim cannot outlive the run
    behind it.
 
+What the five runs did on the way there, drawn from the band of step 3:
+
+<!-- source: reports/figures/MANIFEST.json -->
+![Rolling episode reward against environment steps, the median of n = 5 runs drawn over the band from the 25th to the 75th percentile, with the solved threshold dashed above it](../reports/figures/learning_curve.png)
+
+The curve sits below the published score throughout, and the gap is not progress left on the
+table: these are training episodes, where actions are sampled from the policy's distribution,
+and the published number comes from a deterministic run of the same weights.
+
 ## What `landed` means
 
 The environment's terminal reward, and not the score. `LunarLander-v3` pays one hundred for

@@ -120,6 +120,13 @@ def ensure_dirs() -> None:
     Only what a run writes into. An input that is absent has to stop the run where it is
     read, and never become an empty directory that looks like an answer.
     """
-    for path in (REPORTS_DIR, FIGURES_DIR, MODELS_DIR, RUNS_DIR, TENSORBOARD_DIR,
-                 LOGS_DIR, VIDEOS_DIR):
+    for path in (
+        REPORTS_DIR,
+        FIGURES_DIR,
+        MODELS_DIR,
+        RUNS_DIR,
+        TENSORBOARD_DIR,
+        LOGS_DIR,
+        VIDEOS_DIR,
+    ):
         path.mkdir(parents=True, exist_ok=True)

@@ -95,8 +95,13 @@ def test_a_trial_is_judged_against_the_spread_between_seeds(tmp_path: Path) -> N
         _run(42, 200.0, variant="gamma099", gamma=0.99),
     ]
 
-    rows = list(csv.DictReader(_trials_csv(baselines, trials, tmp_path / "trials.csv")
-                               .read_text(encoding="utf-8").splitlines()))
+    rows = list(
+        csv.DictReader(
+            _trials_csv(baselines, trials, tmp_path / "trials.csv")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        )
+    )
 
     assert rows[0]["trial"] == "baseline"
     assert rows[0]["seed"] == "3 seeds"

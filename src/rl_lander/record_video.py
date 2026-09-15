@@ -107,6 +107,7 @@ def record_landing(
     seed_start: int = 0,
     min_landings: int = 2,
     fade_length: int = 10,
+    gif: Path = PUBLISHED_GIF,
 ) -> dict:
     """Record a clip of successful landings and return exactly what it contains.
 
@@ -165,12 +166,12 @@ def record_landing(
     if len(sequence) > max_frames:
         sequence = sequence[:max_frames]
     imageio.mimsave(str(output), sequence, fps=fps, codec="libx264", quality=8)
-    gif = write_gif(sequence, fps)
+    animation = write_gif(sequence, fps, output=gif)
 
     landed_count = sum(1 for take in selected if take.landed)
     return {
         "output": str(output),
-        "gif": str(gif),
+        "gif": str(animation),
         "episodes": [
             {"seed": t.seed, "total_reward": round(t.total_reward, 2), "landed": t.landed}
             for t in selected
@@ -193,9 +194,14 @@ def write_gif(sequence: list[np.ndarray], fps: int, output: Path = PUBLISHED_GIF
     """Write the animation a document can embed, decimated from the clip's own frames.
 
     Same frames, fewer of them: the GIF is what the README shows, and it has to be small
-    enough that a reader sees it before they scroll past. It is written beside the
-    screenshots and declared in the same manifest, because a picture nobody can regenerate
-    is a picture nobody can check.
+    enough that a reader sees it before they scroll past.
+
+    **The manifest is written only for the published animation.** Anything recorded
+    somewhere else is a rehearsal, and a rehearsal has no business declaring itself as the
+    picture the README shows. The rule replaces a defect the test suite carried without
+    anyone seeing it: recording a clip into a temporary directory overwrote
+    `docs/images/landing.gif` and its manifest entry, so a run of `pytest` left the README
+    illustrated by an untrained policy crashing.
     """
     output.parent.mkdir(parents=True, exist_ok=True)
     step = max(1, round(fps / GIF_FPS))
@@ -203,7 +209,8 @@ def write_gif(sequence: list[np.ndarray], fps: int, output: Path = PUBLISHED_GIF
     # The GIF plugin takes a per-frame duration in milliseconds; `fps` is deprecated there
     # and, with warnings turned into errors, deprecated means the test suite fails.
     imageio.mimsave(str(output), decimated, duration=1000 / GIF_FPS, loop=0)
-    _declare_gif(output, len(decimated))
+    if output == PUBLISHED_GIF:
+        _declare_gif(output, len(decimated))
     return output
 
 

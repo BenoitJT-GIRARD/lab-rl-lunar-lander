@@ -1,4 +1,4 @@
-"""Exercice 2 — Q-learning tabulaire sur FrozenLake-v1.
+"""Tabular Q-learning on FrozenLake-v1.
 
 Implements the canonical Q-learning algorithm with an
 :math:`\\varepsilon`-greedy policy.  The Bellman update follows

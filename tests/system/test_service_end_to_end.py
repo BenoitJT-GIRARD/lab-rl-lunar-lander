@@ -63,7 +63,9 @@ def _post(url: str, payload: dict, timeout: float = 60.0) -> tuple[int, dict]:
 def service(tmp_path_factory: pytest.TempPathFactory) -> Iterator[str]:
     """Start the API the way ``## Running it`` says to, on a port of its own."""
     if not DEFAULT_MODEL_PATH.exists():
-        pytest.skip(f"no policy at {DEFAULT_MODEL_PATH.name}: run: uv run python scripts/publish_run.py")
+        pytest.skip(
+            f"no policy at {DEFAULT_MODEL_PATH.name}: run: uv run python scripts/publish_run.py"
+        )
 
     port = _free_port()
     log = tmp_path_factory.mktemp("service") / "uvicorn.log"
@@ -146,9 +148,7 @@ def test_the_same_seed_gives_the_same_trajectory(service: str) -> None:
 
 
 def test_one_action_is_asked_for_and_answered(service: str) -> None:
-    status, answer = _post(
-        service + "/play", {"state": [0.0, 1.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}
-    )
+    status, answer = _post(service + "/play", {"state": [0.0, 1.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]})
     assert status == 200
     assert answer["action"] in {0, 1, 2, 3}
     assert answer["action_label"]

@@ -16,35 +16,9 @@ import plotly.express as px
 import streamlit as st
 
 from rl_lander.artifacts import CURVE_COLUMNS, EVALUATION_COLUMNS, read_table
-from rl_lander.figure_style import PALETTE, STATE
+from rl_lander.charts import OUTCOME_COLOURS, styled
+from rl_lander.figure_style import PALETTE
 from rl_lander.utils import EVALUATION_CSV, TRAINING_CURVES_CSV
-
-#: Two outcomes, two state colours, taken by name from the palette the figures read. The page
-#: used a green and a red of its own, which meant nothing shared between this dashboard and
-#: the figures of the README.
-OUTCOME_COLOURS = {"landed": STATE["ok"], "did not land": STATE["danger"]}
-
-#: What every chart of this page is drawn with. Plotly takes nothing from the Streamlit theme,
-#: so a figure left to itself arrives in the library's defaults on a page painted otherwise.
-LAYOUT = {
-    "paper_bgcolor": PALETTE["paper"],
-    "plot_bgcolor": PALETTE["paper"],
-    "font": {"color": PALETTE["ink"], "size": 13},
-    "margin": {"t": 50, "b": 40, "l": 10, "r": 10},
-}
-AXIS = {
-    "gridcolor": PALETTE["grid"],
-    "zerolinecolor": PALETTE["grid"],
-    "linecolor": PALETTE["muted"],
-}
-
-
-def _styled(figure, x_title: str, y_title: str):
-    """One place where a chart of this page gets its colours and its axis titles."""
-    figure.update_layout(**LAYOUT)
-    figure.update_xaxes(title_text=x_title, **AXIS)
-    figure.update_yaxes(title_text=y_title, **AXIS)
-    return figure
 
 
 def _with_outcome(frame: pd.DataFrame) -> pd.DataFrame:
@@ -59,22 +33,31 @@ def _with_outcome(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def _kpi_row(frame: pd.DataFrame) -> None:
+    """Five numbers, and their second line written as a caption.
+
+    Not as ``st.metric(delta=)``: that argument means « this much more than last time », and
+    Streamlit paints it green with an arrow. A dispersion and a breakdown are neither a
+    change nor good news, and the earlier version showed a rising green « std 29.1 ».
+    """
     cols = st.columns(5)
     cols[0].metric("Episodes", len(frame))
-    cols[1].metric(
-        "Mean reward",
-        f"{frame['total_reward'].mean():.1f}",
-        delta=f"std {frame['total_reward'].std():.1f}",
-    )
+    cols[0].caption("after the sidebar filters")
+    cols[1].metric("Mean reward", f"{frame['total_reward'].mean():.1f}")
+    cols[1].caption(f"sd {frame['total_reward'].std():.1f} across these episodes")
     # Two rates, not one. Landing is read from the environment's terminal reward; the
     # threshold is the score. They answer different questions and a weaker policy separates
     # them.
     cols[2].metric("Landing rate", f"{frame['landed'].mean() * 100:.1f}%")
+    cols[2].caption("read from the terminal reward")
     cols[3].metric("Above solved threshold", f"{frame['meets_threshold'].mean() * 100:.1f}%")
+    cols[3].caption("score over 200")
     cols[4].metric(
         "Mean engine firings",
         f"{(frame['main_engine_firings'] + frame['side_engine_firings']).mean():.1f}",
-        delta=f"main {frame['main_engine_firings'].mean():.0f}",
+    )
+    cols[4].caption(
+        f"main {frame['main_engine_firings'].mean():.0f}, "
+        f"side {frame['side_engine_firings'].mean():.0f}"
     )
 
 
@@ -99,8 +82,8 @@ def _training_section(curves: pd.DataFrame) -> None:
             name=name,
             line={"dash": "dot"},
         )
-    _styled(fig, "Timesteps of training", "Mean reward over the last 100 episodes")
-    st.plotly_chart(fig, use_container_width=True)
+    styled(fig, "Timesteps of training", "Mean reward over the last 100 episodes")
+    st.plotly_chart(fig, width="stretch")
 
 
 def _filters(frame: pd.DataFrame) -> pd.DataFrame:
@@ -149,8 +132,8 @@ def _episode_section(frame: pd.DataFrame) -> None:
             color="outcome",
             color_discrete_map=OUTCOME_COLOURS,
         )
-        _styled(fig, "Total reward of the episode", "Episodes")
-        st.plotly_chart(fig, use_container_width=True)
+        styled(fig, "Total reward of the episode", "Episodes")
+        st.plotly_chart(fig, width="stretch")
     with col_b:
         fig = px.scatter(
             coloured,
@@ -167,10 +150,10 @@ def _episode_section(frame: pd.DataFrame) -> None:
         # that.
         fig.add_vline(x=-0.1, line_dash="dot", line_color=PALETTE["reference"])
         fig.add_vline(x=0.1, line_dash="dot", line_color=PALETTE["reference"])
-        _styled(fig, "Horizontal position at rest", "Altitude at rest")
-        st.plotly_chart(fig, use_container_width=True)
+        styled(fig, "Horizontal position at rest", "Altitude at rest")
+        st.plotly_chart(fig, width="stretch")
 
-    st.dataframe(frame, use_container_width=True, height=320)
+    st.dataframe(frame, width="stretch", height=320)
 
 
 def _engine_section(frame: pd.DataFrame) -> None:
@@ -203,8 +186,8 @@ def _engine_section(frame: pd.DataFrame) -> None:
         title="Mean reward by total engine firings (quartiles)",
     )
     fig.update_traces(textposition="outside")
-    _styled(fig, "Engine firings in the episode", "Mean reward")
-    st.plotly_chart(fig, use_container_width=True)
+    styled(fig, "Engine firings in the episode", "Mean reward")
+    st.plotly_chart(fig, width="stretch")
 
 
 def main() -> None:

@@ -75,7 +75,7 @@ def test_impossible_recording_parameters_are_refused(
 ) -> None:
     """They used to be accepted and produce an empty file, or divide by zero."""
     with pytest.raises(ValueError, match=message):
-        record_landing(output=tmp_path / "clip.mp4", **kwargs)
+        record_landing(output=tmp_path / "clip.mp4", gif=tmp_path / "clip.gif", **kwargs)
 
 
 def test_a_clip_that_shows_no_landing_says_so(tmp_path: Path, untrained_checkpoint: Path) -> None:
@@ -86,6 +86,7 @@ def test_a_clip_that_shows_no_landing_says_so(tmp_path: Path, untrained_checkpoi
     info = record_landing(
         model_path=untrained_checkpoint,
         output=tmp_path / "clip.mp4",
+        gif=tmp_path / "clip.gif",
         max_attempts=2,
         target_min_seconds=0.1,
         target_max_seconds=60.0,
@@ -111,6 +112,7 @@ def test_the_manifest_names_the_episodes_that_were_encoded(
     info = record_landing(
         model_path=untrained_checkpoint,
         output=tmp_path / "clip.mp4",
+        gif=tmp_path / "clip.gif",
         max_attempts=3,
         target_min_seconds=0.1,
         target_max_seconds=60.0,
@@ -124,6 +126,36 @@ def test_the_manifest_names_the_episodes_that_were_encoded(
     )
     assert info["landing_rate"] == 0.0
     assert info["attempts"] == 3
+
+
+def test_a_rehearsal_does_not_replace_the_published_animation(
+    tmp_path: Path, untrained_checkpoint: Path
+) -> None:
+    """Recording somewhere else leaves `docs/images/` exactly as it was.
+
+    This is the guard on a defect that shipped silently: `record_landing` wrote its GIF to
+    the published path whatever `output` said, and declared it in the manifest. Running the
+    suite therefore replaced the README's landing clip with eighty-two frames of an
+    untrained policy crashing, and rewrote the manifest entry to match.
+    """
+    published = ROOT_DIR / "docs" / "images" / "landing.gif"
+    manifest = ROOT_DIR / "docs" / "images" / "MANIFEST.json"
+    before = (published.read_bytes(), manifest.read_bytes())
+
+    info = record_landing(
+        model_path=untrained_checkpoint,
+        output=tmp_path / "clip.mp4",
+        gif=tmp_path / "clip.gif",
+        max_attempts=1,
+        target_min_seconds=0.1,
+        target_max_seconds=60.0,
+        min_landings=1,
+        fps=50,
+    )
+
+    assert Path(info["gif"]) == tmp_path / "clip.gif"
+    assert Path(info["gif"]).exists()
+    assert (published.read_bytes(), manifest.read_bytes()) == before
 
 
 # --- the cockpit's replay --------------------------------------------------------------

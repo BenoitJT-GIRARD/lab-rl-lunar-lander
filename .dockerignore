@@ -1,0 +1,29 @@
+# What never enters the build context.
+#
+# The image serves the trained policy and reads the published exports. It needs the package,
+# the checkpoint under models/ and the CSVs under reports/; it needs neither the tests, nor
+# the documents, nor anything a run leaves behind.
+
+.git
+.gitignore
+.gitattributes
+.github
+
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.ipynb_checkpoints
+
+docs
+notebooks
+scripts
+tests
+
+# Runs, TensorBoard logs, recorded videos: gigabytes of training state the image would copy
+# in and never open.
+var
+
+.env

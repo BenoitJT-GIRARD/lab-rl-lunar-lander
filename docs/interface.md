@@ -18,7 +18,7 @@ brings faulted when its native libraries loaded after Box2D.
 ## The cockpit
 
 <!-- source: docs/images/MANIFEST.json -->
-![One flight in the cockpit at seed 42: the replay on the left, and on the right a total reward of 248, an episode of 315 steps, a final altitude of zero and the four engine counts](images/cockpit.png)
+![One flight in the cockpit at seed 42: the replay on the left, and on the right the total reward, the episode length, the final altitude and the four engine counts of that same flight](images/cockpit.png)
 
 | On screen | What it is for |
 |---|---|
@@ -41,7 +41,7 @@ turns red when the local replay and the service's trajectory disagree: the check
 | Section | The question it answers |
 |---|---|
 | Training progress | did the run converge, and when |
-| The five cards | episodes, mean reward, landing rate, worst episode, mean length |
+| The five cards | episodes, mean reward, landing rate, share above the threshold, mean firings |
 | Per-episode telemetry | how the rewards are distributed, and where the lander came to rest |
 | Engine use | what a landing costs in firings |
 

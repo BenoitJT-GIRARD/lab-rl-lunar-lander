@@ -5,14 +5,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from rl_lander.exercises.exercise1_cartpole import (
-    describe_spaces,
-    run_random_policy,
-)
-from rl_lander.exercises.exercise2_qlearning import (
+from rl_lander.exercises.qlearning_frozenlake import (
     QLearningConfig,
     evaluate,
     train,
+)
+from rl_lander.exercises.random_policy_cartpole import (
+    describe_spaces,
+    run_random_policy,
 )
 
 

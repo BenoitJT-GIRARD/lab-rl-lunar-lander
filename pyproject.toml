@@ -185,7 +185,7 @@ show_missing = true
 skip_covered = true
 # The floor is the rate measured the day the suite was completed, rounded down. A floor
 # below the current rate is not a floor: it lets the next commit lose coverage in silence.
-fail_under = 67
+fail_under = 73
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.:",

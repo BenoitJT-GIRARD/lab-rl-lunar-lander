@@ -147,8 +147,15 @@ def _start_page(module: str, port: int) -> None:
     _PAGES.append(
         subprocess.Popen(
             [
-                sys.executable, "-m", "streamlit", "run", str(SRC_DIR / module),
-                "--server.port", str(port), "--server.headless", "true",
+                sys.executable,
+                "-m",
+                "streamlit",
+                "run",
+                str(SRC_DIR / module),
+                "--server.port",
+                str(port),
+                "--server.headless",
+                "true",
             ],
             cwd=ROOT_DIR,
             stdout=subprocess.DEVNULL,
@@ -162,7 +169,9 @@ def _stop_pages() -> None:
         if os.name == "nt":
             subprocess.run(
                 ["taskkill", "/F", "/T", "/PID", str(page.pid)],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
             )
         else:
             page.terminate()

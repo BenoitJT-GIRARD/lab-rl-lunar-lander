@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback
 
+from rl_lander.artifacts import LINE_TERMINATOR
+
 
 class CsvProgressCallback(BaseCallback):
     """Persist training progress to a CSV the dashboard can plot.
@@ -41,7 +43,9 @@ class CsvProgressCallback(BaseCallback):
     def _on_training_start(self) -> None:
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         self._fh = self.output_path.open("w", newline="", encoding="utf-8")
-        self._writer = csv.DictWriter(self._fh, fieldnames=self._fields)
+        self._writer = csv.DictWriter(
+            self._fh, fieldnames=self._fields, lineterminator=LINE_TERMINATOR
+        )
         self._writer.writeheader()
         self._next_at = self.check_every
         self._started_at = time.monotonic()

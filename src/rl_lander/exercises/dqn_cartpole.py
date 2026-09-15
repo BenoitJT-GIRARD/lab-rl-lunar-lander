@@ -1,4 +1,4 @@
-"""Exercice 3 — Deep Q-Network on CartPole-v1 (manual + Stable-Baselines3).
+"""A Deep Q-Network on CartPole-v1, written out and then taken from the library.
 
 The module exposes:
 

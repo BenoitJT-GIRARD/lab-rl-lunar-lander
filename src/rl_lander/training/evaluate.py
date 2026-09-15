@@ -22,7 +22,6 @@ can be published and never implied.
 from __future__ import annotations
 
 import csv
-import json
 import shutil
 import subprocess  # nosec B404 - one call, on a constant argv
 from collections.abc import Sequence
@@ -33,6 +32,7 @@ from pathlib import Path
 import numpy as np
 from stable_baselines3.common.base_class import BaseAlgorithm
 
+from rl_lander.artifacts import LINE_TERMINATOR, write_json
 from rl_lander.training.environments import make_eval_env
 from rl_lander.utils import EVALUATION_CSV
 
@@ -214,7 +214,7 @@ def write_csv(records: Sequence[EpisodeRecord], output: Path = EVALUATION_CSV) -
     records = list(records)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.writer(handle)
+        writer = csv.writer(handle, lineterminator=LINE_TERMINATOR)
         writer.writerow(FIELDS)
         for record in records:
             row = asdict(record)
@@ -287,9 +287,7 @@ def write_manifest(
             "numpy": np.__version__,
         },
     }
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    return output
+    return write_json(output, payload)
 
 
 __all__ = [

@@ -27,13 +27,13 @@ Usage
 from __future__ import annotations
 
 import argparse
-import json
 from dataclasses import asdict
 from pathlib import Path
 
 from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.callbacks import CallbackList, EvalCallback
 
+from rl_lander.artifacts import write_json
 from rl_lander.training.callbacks import CsvProgressCallback
 from rl_lander.training.environments import (
     make_eval_env,
@@ -84,7 +84,7 @@ def _write_run_manifest(run: Path, metrics: dict) -> Path:
     The CLI used to print them and stop there, so a model on disk was attached to nothing.
     """
     target = run / "manifest.json"
-    target.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
+    write_json(target, metrics)
     return target
 
 

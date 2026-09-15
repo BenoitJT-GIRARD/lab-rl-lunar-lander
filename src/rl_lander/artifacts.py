@@ -12,9 +12,19 @@ can only be read with a web framework installed is not a schema.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
+
+#: How every published table and manifest ends its lines, on any platform.
+#:
+#: `.gitattributes` normalises text to LF when it is committed, so a CSV written with CRLF
+#: is stored as LF and the two never look different. They differ the day a run is compared
+#: against what was committed, which is what `scripts/smoke.py` does: `git` then reports a
+#: file modified that no diff can show. Both writers have to be told, because `csv.writer`
+#: ends its rows with CRLF by default and `Path.write_text` translates on Windows.
+LINE_TERMINATOR = "\n"
 
 #: What `scripts/evaluate_and_export.py` writes, per episode.
 EVALUATION_COLUMNS = (
@@ -35,6 +45,17 @@ CURVE_COLUMNS = ("timesteps", "ep_rew_mean", "ep_rew_std")
 
 #: What `scripts/aggregate_study.py` writes for the band across seeds.
 BAND_COLUMNS = ("timesteps", "median", "q25", "q75")
+
+
+def write_json(path: Path, payload: object) -> Path:
+    """Write a published JSON artefact: two-space indent, LF, one final newline."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + LINE_TERMINATOR,
+        encoding="utf-8",
+        newline=LINE_TERMINATOR,
+    )
+    return path
 
 
 def read_table(path: Path, required: tuple[str, ...]) -> tuple[pd.DataFrame | None, str | None]:

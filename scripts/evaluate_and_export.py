@@ -20,11 +20,11 @@ Writes `reports/evaluation_episodes.csv`, `reports/evaluation_summary.json` and
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 from stable_baselines3 import PPO
 
+from rl_lander.artifacts import write_json
 from rl_lander.training.evaluate import (
     SOLVED_THRESHOLD,
     evaluate_seeds,
@@ -74,17 +74,9 @@ def main() -> None:
         evaluate_seeds(model, args.seeds, n_episodes=args.episodes) if len(args.seeds) > 1 else None
     )
 
-    summary_path = REPORTS_DIR / "evaluation_summary.json"
-    summary_path.write_text(
-        json.dumps(
-            {
-                "canonical_seed": canonical_seed,
-                "metrics": metrics,
-                "across_seeds": across,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
+    summary_path = write_json(
+        REPORTS_DIR / "evaluation_summary.json",
+        {"canonical_seed": canonical_seed, "metrics": metrics, "across_seeds": across},
     )
 
     manifest_path = write_manifest(

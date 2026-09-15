@@ -21,6 +21,7 @@ import numpy as np
 import streamlit as st
 
 from rl_lander.agent import ACTION_LABELS, LunarLanderAgent
+from rl_lander.charts import bars, line
 from rl_lander.replay import replay_actions, replay_matches
 from rl_lander.utils import DEFAULT_MODEL_PATH
 
@@ -44,9 +45,12 @@ def _animation(frames: list[np.ndarray], fps: int) -> bytes:
     between them. That blocks the Streamlit script for the whole animation, so the metrics
     -- which were already computed -- appeared only once the landing had finished playing,
     and any interaction during it was queued behind the sleep.
+
+    The per-frame duration, and not ``fps``: the GIF plugin dropped that keyword and warns,
+    and a Streamlit page turns a warning into a yellow banner over the landing.
     """
     buffer = io.BytesIO()
-    imageio.mimwrite(buffer, frames, format="GIF", fps=fps, loop=0)
+    imageio.mimwrite(buffer, frames, format="GIF", duration=1000 / fps, loop=0)
     return buffer.getvalue()
 
 
@@ -93,20 +97,34 @@ def _obtain_episode(api_url: str, seed: int, prefer_api: bool) -> tuple[dict[str
 def _metrics_panel(payload: dict[str, Any], source: str) -> None:
     st.subheader("Episode metrics")
     st.caption(f"Computed by the {source}.")
-    st.metric(
-        "Total reward",
-        f"{payload['total_reward']:.1f}",
-        delta="landed" if payload["landed"] else "did not land",
-        delta_color="normal" if payload["landed"] else "inverse",
-    )
+    st.metric("Total reward", f"{payload['total_reward']:.1f}")
+    # The outcome as its own line, and not as `delta=`. That argument means « this much more
+    # than last time »; « landed » is not a difference, and there is no previous episode to
+    # compare it to.
+    if payload["landed"]:
+        st.success("Landed")
+    else:
+        st.error("Did not land")
     st.metric("Episode length", payload["length"])
     st.metric("Final altitude", f"{payload['final_state'][1]:.2f}")
     st.divider()
     st.markdown("**Action distribution**")
     actions = np.asarray(payload["actions"])
-    st.bar_chart({ACTION_LABELS[i]: int(np.sum(actions == i)) for i in range(4)})
+    counts = [int(np.sum(actions == index)) for index in range(4)]
+    st.plotly_chart(
+        bars(
+            [ACTION_LABELS[index] for index in range(4)],
+            counts,
+            x_title="Engine",
+            y_title="Steps it fired",
+        ),
+        width="stretch",
+    )
     st.markdown("**Reward per step**")
-    st.line_chart(payload["rewards"])
+    st.plotly_chart(
+        line(payload["rewards"], x_title="Step of the episode", y_title="Reward paid"),
+        width="stretch",
+    )
 
 
 def main() -> None:
@@ -123,7 +141,7 @@ def main() -> None:
         seed = st.number_input("Seed", min_value=0, max_value=10_000, value=42, step=1)
         prefer_api = st.toggle("Prefer the API backend", value=True)
         fps = st.slider("Replay FPS", min_value=10, max_value=60, value=30)
-        launch = st.button("Run episode", use_container_width=True)
+        launch = st.button("Run episode", width="stretch")
         st.divider()
         st.markdown(
             "**Action space**\n\n"

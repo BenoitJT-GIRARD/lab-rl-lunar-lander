@@ -21,36 +21,87 @@ nobody watches.
 from __future__ import annotations
 
 import json
+import os
 import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 
-from rl_lander.utils.paths import ROOT_DIR
+from rl_lander.utils.paths import DEFAULT_MODEL_PATH, ROOT_DIR, ROOT_ENV, SCRIPTS_DIR
 
 EVIDENCE = "reports/run-evidence.json"
 COMMAND = "uv run python scripts/smoke.py"
 
-#: The tracked files this run regenerates. Each one is compared with its committed version:
-#: a smoke test that writes nothing proves that the process starts, not that it works.
-KEY_OUTPUT: tuple[str, ...] = ()
+#: The two files the run has to produce identically, or the evidence is not written.
+#:
+#: The evaluation manifest is not among them, and cannot be: it dates the evaluation and
+#: names the revision it ran at, so it differs from the committed one by design. What is
+#: compared is what the published tables are read from.
+KEY_OUTPUT: tuple[str, ...] = (
+    "reports/evaluation_episodes.csv",
+    "reports/evaluation_summary.json",
+)
 
 #: The distributions whose version changes the result. Not the whole lock file — the reader
 #: needs what would explain a different number, not an inventory.
-TOOLS: tuple[str, ...] = ()
+TOOLS: tuple[str, ...] = ("gymnasium", "stable-baselines3", "torch", "numpy", "box2d-py")
+
+
+def _run(*arguments: str, root: Path) -> None:
+    """Call one of the scripts of `scripts/`, in its own process, and stop on a non-zero exit.
+
+    Its output is printed whatever happens: a smoke run that fails silently has to leave the
+    reader with the same lines they would have seen typing the command themselves.
+    """
+    print(f"[run] {' '.join(arguments)}")
+    done = subprocess.run(
+        [sys.executable, *arguments],
+        cwd=ROOT_DIR,
+        env={**os.environ, "PYTHONIOENCODING": "utf-8", ROOT_ENV: str(root)},
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    print(done.stdout.rstrip())
+    if done.returncode != 0:
+        raise SystemExit(f"{arguments[0]} failed ({done.returncode}):\n{done.stderr}")
 
 
 def steps() -> None:
-    """What the product does, end to end, written as the README says to run it.
+    """The shipped policy, scored on the published grids, and the exports compared.
 
-    Fill this in per repository: build the index and answer a question, score a batch through
-    the served model, run the pipeline on the frozen sample. Raise on anything unexpected —
-    a smoke test that swallows an error is a smoke test that always passes.
+    This is the one published table a clean clone can rebuild. The five training runs behind
+    the headline figure cost a million steps each and their directories are ignored by git;
+    what is tracked is the checkpoint and what was measured from it, so what a smoke run can
+    settle is whether that measurement still comes out the same. Six grids, 100 episodes
+    each, deterministic actions: 600 landings, and two files that have to match byte for
+    byte.
+
+    The exporter writes into a temporary root, through ``RL_LANDER_ROOT``, and the two
+    artefacts are then copied over the committed ones. Running it in place would rewrite the
+    dated manifest as a side effect, and leave the checkout modified by a script whose whole
+    point is to show that nothing moved.
     """
-    raise NotImplementedError("scripts/smoke.py: describe this project's end-to-end run")
+    with tempfile.TemporaryDirectory(prefix="rl-lander-smoke-") as scratch:
+        elsewhere = Path(scratch)
+        _run(
+            str(SCRIPTS_DIR / "evaluate_and_export.py"),
+            "--model",
+            str(DEFAULT_MODEL_PATH),
+            root=elsewhere,
+        )
+        for rel in KEY_OUTPUT:
+            produced = elsewhere / rel
+            if not produced.exists():
+                raise SystemExit(f"the run produced no {rel}: nothing to compare")
+            shutil.copyfile(produced, ROOT_DIR / rel)
 
 
 # --- What the evidence records ----------------------------------------------
