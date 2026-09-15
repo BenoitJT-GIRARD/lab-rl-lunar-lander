@@ -49,7 +49,7 @@ KEY_OUTPUT: tuple[str, ...] = (
 
 #: The distributions whose version changes the result. Not the whole lock file — the reader
 #: needs what would explain a different number, not an inventory.
-TOOLS: tuple[str, ...] = ("gymnasium", "stable-baselines3", "torch", "numpy", "box2d-py")
+TOOLS: tuple[str, ...] = ("gymnasium", "stable-baselines3", "torch", "numpy", "Box2D")
 
 
 def _run(*arguments: str, root: Path) -> None:
