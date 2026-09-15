@@ -165,14 +165,19 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
+# Without this, the published XML report writes the absolute root of the measured sources:
+# a reader finds the directory tree of the machine that ran the suite, and two runs on two
+# machines produce two different files for the same numbers.
+relative_files = true
 # Three directories carry tracked Python, and all three are measured. `src/` alone left the
 # four scripts a reader is told to run outside the number the badge publishes.
 source = ["src/rl_lander", "scripts"]
 branch = true
 data_file = "var/.coverage"
 omit = [
-    # Vendored copies of portfolio tooling, identical in every repository and tested where
-    # they are written: counting them here would measure someone else's tests.
+    # Copied in rather than imported, so a clone needs nothing extra to install, and tested
+    # at their source. Measuring them here would report someone else's coverage as this
+    # project's.
     "*/figure_style.py",
     "*/utils/paths.py",
     "scripts/capture.py",
