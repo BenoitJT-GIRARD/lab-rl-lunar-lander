@@ -15,7 +15,7 @@
       "app_state": "the API started from the policy committed at models/ppo/best.zip, and the two Streamlit pages started against it on their own ports",
       "data_source": "none: the page is generated from the Pydantic models",
       "demonstrates_behaviour": "the five routes, the eight-number observation the agent routes accept and the trajectory the run route returns are generated from the Pydantic models, so the page a caller reads cannot drift from the contract the service enforces",
-      "git_revision": "c14dd4dcdfcb0bacb9a6eafa18936e4e51eee088",
+      "git_revision": "20663d7962f1f74067fb2a3c3a624f7e9ff2cec4",
       "depends_on": [
         "src/rl_lander/api.py"
       ]
@@ -34,7 +34,7 @@
       "app_state": "the API started from the policy committed at models/ppo/best.zip, and the two Streamlit pages started against it on their own ports, then one episode flown at seed 42 through the API",
       "data_source": "the published evaluation under reports/, and episodes the environment generates during the capture; nothing here belongs to anyone else",
       "demonstrates_behaviour": "the animation is rebuilt locally from the trajectory the service returned, and the page states which of the two computed the metrics beside it; a replay that diverged from the service's episode turns the panel red instead of showing two different flights side by side",
-      "git_revision": "c14dd4dcdfcb0bacb9a6eafa18936e4e51eee088",
+      "git_revision": "20663d7962f1f74067fb2a3c3a624f7e9ff2cec4",
       "depends_on": [
         "src/rl_lander/gui.py",
         "src/rl_lander/replay.py"
@@ -54,7 +54,7 @@
       "app_state": "the API started from the policy committed at models/ppo/best.zip, and the two Streamlit pages started against it on their own ports",
       "data_source": "the published evaluation under reports/, and episodes the environment generates during the capture; nothing here belongs to anyone else",
       "demonstrates_behaviour": "the hundred episodes of the exported grid, read from a tracked file and not recomputed, with every panel of the page drawing from the same filtered frame",
-      "git_revision": "c14dd4dcdfcb0bacb9a6eafa18936e4e51eee088",
+      "git_revision": "20663d7962f1f74067fb2a3c3a624f7e9ff2cec4",
       "paired_with": "cockpit.png",
       "depends_on": [
         "src/rl_lander/dashboard.py",
@@ -71,7 +71,7 @@
       "app_state": "the policy committed at models/ppo/best.zip, flown from seed 0 upwards until the clip holds at least two landings and reaches twenty-two seconds",
       "data_source": "none: the frames are rendered by the environment during the flight",
       "demonstrates_behaviour": "the shipped policy brings the lander down between the flags and comes to rest on its legs, which is the claim the landing rate puts a number on",
-      "git_revision": "c14dd4dcdfcb0bacb9a6eafa18936e4e51eee088",
+      "git_revision": "20663d7962f1f74067fb2a3c3a624f7e9ff2cec4",
       "depends_on": [
         "src/rl_lander/record_video.py",
         "models/ppo/best.zip"
