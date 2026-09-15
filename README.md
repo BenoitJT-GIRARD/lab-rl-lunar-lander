@@ -4,7 +4,7 @@
 
 <p align="center">
   <img src="docs/badges/python.svg" alt="Python 3.12">
-  <img src="docs/badges/stack.svg" alt="Built with Gymnasium · Stable-Baselines3 · Plotly">
+  <img src="docs/badges/stack.svg" alt="Built with Gymnasium · Stable-Baselines3 · PyTorch">
   <img src="docs/badges/licence.svg" alt="License: MIT">
   <img src="docs/badges/coverage.svg" alt="coverage 76%">
 </p>
