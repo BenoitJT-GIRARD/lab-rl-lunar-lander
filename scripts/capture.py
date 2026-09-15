@@ -45,8 +45,8 @@ from typing import Self
 
 from rl_lander.utils.paths import IMAGES_DIR, ROOT_DIR, SRC_DIR
 
-#: Logical size of every capture, and the density it is rendered at. One size for the whole
-#: portfolio: a reader comparing two repositories compares two images of the same shape.
+#: Logical size of every capture, and the density it is rendered at. One size for all of
+#: them, so that two screenshots of this product can be read side by side.
 VIEWPORT = (1280, 1000)
 DEVICE_SCALE_FACTOR = 2
 

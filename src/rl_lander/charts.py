@@ -1,7 +1,7 @@
 """How a chart of either page is painted. One module, two pages, one answer.
 
 Streamlit's own `st.bar_chart` and `st.line_chart` are one line each and paint in the
-library's default colours, next to a page painted in the portfolio's. The cockpit used them,
+library's default colours, next to a page painted in this project's. The cockpit used them,
 and that is also how `tests/integration/test_streamlit_pages.py` came to crash the
 interpreter instead of failing: their Altair path converts the frame through pyarrow, and in
 a process already holding Box2D and torch that conversion ended in an access violation, with

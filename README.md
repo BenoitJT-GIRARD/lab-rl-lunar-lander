@@ -72,7 +72,7 @@ names its device with the measurement beside it.
 
 **FastAPI** serves the policy and **Uvicorn** runs it. The two **Streamlit** pages hold no reinforcement learning at
 all: one asks the service for a trajectory and rebuilds the animation locally, the other reads
-the published exports and draws them with **Plotly** on the portfolio's palette.
+the published exports and draws them with **Plotly**, on the colours the figures use.
 
 **uv** holds the environment to its lock file, **Ruff** and **Bandit** run on every push, and
 **pytest** is read by tier: unit, integration, and one outer tier that boots `uvicorn` and asks
@@ -208,8 +208,8 @@ device fields of `training/hyperparameters.py`.
 ### What was wrong before, and by how much
 
 This repository used to report `262.2 ± 18.2`, taken from one run on its most favourable
-evaluation grid, as though the ± described the method. The methodological audit found seven
-defects, and rebuilding the study found two more. All nine were in what was *published*
+evaluation grid, as though the ± described the method. Re-reading what had been published
+turned up seven defects, and rebuilding the study found two more. All nine were in what was *published*
 rather than in what was computed, and each is given here with the number before and the
 number after, because a correction nobody can see is half a correction.
 

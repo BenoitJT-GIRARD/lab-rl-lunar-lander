@@ -64,6 +64,6 @@ colour of its own.
 
 ## The theme belongs to the repository
 
-`.streamlit/config.toml` carries the portfolio's palette, and `tests/unit/test_theme.py` reads
-it back against the module the figures use. Without that file, Streamlit paints its factory red
+`.streamlit/config.toml` carries the same colours as the figures, and
+`tests/unit/test_theme.py` reads it back against the module those figures use. Without that file, Streamlit paints its factory red
 on every button and leaves its editor toolbar in the corner of each screenshot.
