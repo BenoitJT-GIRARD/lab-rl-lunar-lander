@@ -9,8 +9,8 @@ sees a red traceback and none throws at import.
 
 `AppTest` is that runtime, in-process and without a browser. It runs the script, it collects
 what the script rendered, and it surfaces the exception the page would have shown. The
-cockpit is run against the local checkpoint rather than the service: the service has its own
-tier, and what is under test here is the page.
+cockpit here flies on the local checkpoint: the service has its own tier, and what is under
+test on this page is the page.
 """
 
 from __future__ import annotations
@@ -20,14 +20,15 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from rl_lander.utils.paths import SRC_DIR
+
 pytestmark = pytest.mark.integration
 
-ROOT = Path(__file__).resolve().parents[2]
-COCKPIT = ROOT / "src" / "rl_lander" / "gui.py"
-DASHBOARD = ROOT / "src" / "rl_lander" / "dashboard.py"
+COCKPIT = SRC_DIR / "gui.py"
+DASHBOARD = SRC_DIR / "dashboard.py"
 
-#: Loading a checkpoint and flying an episode is seconds, not milliseconds, and the default
-#: of three seconds fails on the machine rather than on the page.
+#: Loading a checkpoint and flying an episode takes seconds. AppTest's default of three
+#: would time the page out on the speed of the machine.
 TIMEOUT = 180
 
 
@@ -107,16 +108,16 @@ def test_the_dashboard_reads_the_published_exports_and_draws_every_panel() -> No
     assert "Engine use" in headings
 
 
-def test_the_dashboard_says_what_is_missing_instead_of_raising(tmp_path: Path) -> None:
-    """With neither export on disk, the page is a sentence and a command, not a traceback.
+def test_the_dashboard_says_what_is_missing_and_does_not_raise(tmp_path: Path) -> None:
+    """With neither export on disk, the page answers with a sentence and a command.
 
     `rl_lander.artifacts.read_table` is what turns a missing file into that sentence, and
     this is the only test that shows a reader meeting it.
 
-    The two paths are patched on `rl_lander.utils`, and not through `RL_LANDER_ROOT`: the
-    root is resolved once, when `rl_lander.utils.paths` is first imported, so an environment
-    variable set afterwards changes nothing. The page re-imports the two names on every run,
-    which is what makes patching them there work at all.
+    The two paths are patched on `rl_lander.utils`. `RL_LANDER_ROOT` would change nothing
+    here: the root is resolved once, when `rl_lander.utils.paths` is first imported, and this
+    process imported it long ago. The page re-imports the two names on every run, which is
+    what makes patching them there work at all.
     """
     with pytest.MonkeyPatch.context() as patched:
         patched.setattr("rl_lander.utils.EVALUATION_CSV", tmp_path / "absent_episodes.csv")
