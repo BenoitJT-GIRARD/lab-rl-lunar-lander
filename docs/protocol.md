@@ -59,6 +59,12 @@ What the five runs did on the way there, drawn from the band of step 3:
 <!-- source: reports/figures/MANIFEST.json -->
 ![Rolling episode reward against environment steps, the median of n = 5 runs drawn over the band from the 25th to the 75th percentile, with the solved threshold dashed above it](../reports/figures/learning_curve.png)
 
+> **How to read it.** The horizontal axis is training progress, in millions of environment
+> steps. The line is the median of the five runs at each checkpoint and the band covers the
+> middle half of them, so the width of the band is disagreement between runs at that moment.
+> The dashed line above is the score the environment calls solved. These are training episodes,
+> noisier by construction than the evaluation the published score comes from.
+
 The curve sits below the published score throughout, and the gap is not progress left on the
 table: these are training episodes, where actions are sampled from the policy's distribution,
 and the published number comes from a deterministic run of the same weights.

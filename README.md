@@ -98,6 +98,13 @@ dispersion covers.
 | seed 45 *(shipped)* | 100 | 261.80 | 29.09 | 0.97 | 0.97 | 122.78 |
 | seed 46 | 100 | 265.39 | 19.20 | 1.00 | 1.00 | 224.65 |
 
+> **How to read it.** One row per training run, identical but for the random seed each began
+> from. `mean_reward` averages the hundred evaluation episodes of that run, and
+> `sd_across_episodes` says how much one flight differed from the next inside it.
+> `landing_rate` is the share that ended at rest on the ground, read from the environment's own
+> landing signal. `threshold_rate` is the share clearing the score Gymnasium calls solved, and
+> `worst_episode` is the single flight a passenger would remember.
+
 <!-- source: reports/seed_study.json -->
 **254.14 ± 13.32 between runs**, over n = 5 trainings, worst 237.43, five of the five above
 the solved threshold of 200. That is the transportable number: retrain this configuration and
@@ -105,6 +112,12 @@ you land somewhere in that range.
 
 <!-- source: reports/figures/MANIFEST.json -->
 ![Mean reward of n = 5 training runs, each a point carrying the spread of its own 100 evaluation episodes, with the band of the dispersion between the run means behind them and the solved threshold drawn dashed](reports/figures/seed_spread.png)
+
+> **How to read it.** One line per training run, its dot the average of that run's hundred
+> episodes and its bar the spread among them. The wide band behind all five is a different
+> quantity: the spread of the five run averages around their own mean, which is what retraining
+> this recipe would hand you. The dashed line is the score the environment calls solved. The
+> band is the number to carry away; the bars describe one pilot's steadiness.
 
 The shipped policy is the one trained at seed 45, chosen because its mean is nearest the median
 of the n = 5, and not because it is the best. `scripts/publish_run.py --from-study` makes that
@@ -122,6 +135,12 @@ Its own evaluation, on six independent seed grids of n = 100 episodes each:
 | grid 555 | 100 | 264.31 | 22.22 | 154.11 | 0.99 |
 | grid 31337 | 100 | 262.34 | 23.64 | 135.41 | 0.99 |
 
+> **How to read it.** The policy never changes across these rows; only the hundred episodes
+> drawn to measure it do. Each row is one evaluation grid built from its own seed, so movement
+> down a column is the accident of which flights were sampled. A `mean_reward` steady across the
+> six beside a `worst_episode` swinging widely says the average is firmly pinned and the tail
+> is not.
+
 <!-- source: reports/evaluation_summary.json -->
 **265.60 ± 3.33 across grids**, over six grids of n = 100 episodes. The mean is stable to
 about a point; the worst episode moves from 123 to 227, and the landing rate from 97 of 100 to
@@ -136,6 +155,12 @@ the variance that matters is the one the usual report leaves out.
 <!-- source: reports/figures/MANIFEST.json -->
 ![Three standard deviations of one policy side by side: across n = 100 episodes of a single grid, across n = 6 grids, and across n = 5 trainings, the middle of the three by far the smallest](reports/figures/dispersions.png)
 
+> **How to read it.** Three bars, and none of them is an error bar on another. Each is a
+> standard deviation of something different held fixed: across the episodes of one grid, across
+> six grids scoring one policy, and across five trainings of one recipe. Taller means the
+> quantity underneath moves more. The middle bar is much the smallest, which is why picking
+> another evaluation grid shifts a published score far less than retraining does.
+
 ### Against DQN, at an equal budget
 
 <!-- source: reports/seed_study.json -->
@@ -144,6 +169,12 @@ the variance that matters is the one the usual report leaves out.
 | PPO, mean of 5 runs | 500 | 254.14 | 13.32 between runs | 0.984 | not applicable | not applicable |
 | PPO, shipped run | 100 | 261.80 | 29.09 | 0.97 | 122.78 | 322.6 |
 | DQN, 1 run | 100 | **271.13** | 47.51 | 0.96 | 34.41 | 212.2 |
+
+> **How to read it.** Three rows on one budget. The first averages five PPO (proximal policy
+> optimisation) trainings, so its spread column holds the movement between runs, and its last
+> two columns stay empty because a worst episode belongs to a single grid. The second is the run
+> this repository ships. The third is one DQN (deep Q-network) training, whose higher mean sits
+> beside a far worse single flight.
 
 One million steps each, not the 200,000 DQN's own defaults suggest, because a comparison at
 unequal budgets measures the budget. The DQN scores higher on the mean and is worse
@@ -167,6 +198,12 @@ The baseline row is the mean of the five seeds, whose standard deviation between
 | `learning_rate=1e-3` | 100 | 267.73 | +13.6 | just barely |
 | `n_steps=2048` | 100 | 210.06 | −44.1 | yes |
 | `gamma=0.99` | 100 | 173.13 | −81.0 | yes |
+
+> **How to read it.** One row per trial, each moving a single setting away from the baseline.
+> `delta_vs_baseline` is that trial's mean minus the baseline's, and the last column answers the
+> only question that matters: whether the change is larger than the spread five identical
+> trainings already show. A difference smaller than that spread is a seed at work, never a
+> setting.
 
 The last column is what makes the table readable. Each trial is a **single** seed, and the
 baseline's own spread between seeds is 13.32. A difference smaller than that is one draw from
@@ -231,6 +268,11 @@ the exported grid of n = 100 episodes:
 | PPO, seed 45 | `final.zip` | 100 | 268.14 | 1.0 |
 | DQN, seed 42 | `best.zip` | 100 | **271.13** | 0.96 |
 | DQN, seed 42 | `final.zip` | 100 | **−610.34** | 0.0 |
+
+> **How to read it.** Two checkpoints per run, scored over the same hundred episodes.
+> `best.zip` is the one saved at the highest score seen during training; `final.zip` is whatever
+> the last step left behind. Comparing the pair prices the habit of publishing one and keeping
+> quiet about the other. The DQN row is where that gap stops being academic.
 
 <!-- source: reports/checkpoint_comparison.csv -->
 The DQN policy at the end of training lands **0** of its n = 100 episodes where its best
