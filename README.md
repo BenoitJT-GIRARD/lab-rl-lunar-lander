@@ -17,7 +17,7 @@
 
 **Project status** — frozen, and still runnable. Every number below is read from a tracked
 file under `reports/`, written by a script under `scripts/`, and nothing is redrawn by hand.
-The workflows lint, scan and test on every push; they train nothing, because the policy that
+The workflows lint, scan and test when a hand starts them; they train nothing, because the policy that
 is published is the checkpoint committed here.
 
 ## The problem
@@ -77,7 +77,7 @@ names its device with the measurement beside it.
 all: one asks the service for a trajectory and rebuilds the animation locally, the other reads
 the published exports and draws them with **Plotly**, on the colours the figures use.
 
-**uv** holds the environment to its lock file, **Ruff** and **Bandit** run on every push, and
+**uv** holds the environment to its lock file, **Ruff** and **Bandit** run inside the pipeline, and
 **pytest** is read by tier: unit, integration, and one outer tier that boots `uvicorn` and asks
 the running service to fly one seed twice. **Docker** ships the service and the dashboard as
 one image, on the CPU build of PyTorch.
