@@ -1,9 +1,7 @@
 name: CI
 
 # No `schedule` trigger: training is not run here, only the checks below.
-# Frozen on 2026-09-18. The workflows below ran green on the commit this repository
-# publishes, and the Actions tab holds that run. They fire by hand from now on: a
-# repository nobody maintains should not go red on a dependency that moved.
+# No automatic trigger after 2026-09-18. The green pass is in the tab.
 on:
   workflow_dispatch:
 
