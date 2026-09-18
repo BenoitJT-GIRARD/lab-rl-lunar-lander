@@ -10,7 +10,10 @@
 </p>
 
 <!-- source: docs/images/MANIFEST.json -->
-![Six seconds of the shipped policy bringing the lander down between the flags and coming to rest on its legs](docs/images/landing.gif)
+<p align="center">
+  <img src="docs/images/landing.gif"
+       alt="Six seconds of the shipped policy bringing the lander down between the flags and coming to rest on its legs">
+</p>
 
 **Project status** — frozen, and still runnable. Every number below is read from a tracked
 file under `reports/`, written by a script under `scripts/`, and nothing is redrawn by hand.
