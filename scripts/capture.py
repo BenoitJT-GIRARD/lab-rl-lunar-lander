@@ -33,7 +33,7 @@ import hashlib
 import json
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404 - local processes, constant argv
 import sys
 import time
 import urllib.error
@@ -145,7 +145,7 @@ _PAGES: list[subprocess.Popen] = []
 def _start_page(module: str, port: int) -> None:
     """Start one Streamlit page, headless, and leave it running for the captures."""
     _PAGES.append(
-        subprocess.Popen(
+        subprocess.Popen(  # nosec B603 - constant argv, built here
             [
                 sys.executable,
                 "-m",
@@ -167,7 +167,7 @@ def _start_page(module: str, port: int) -> None:
 def _stop_pages() -> None:
     for page in _PAGES:
         if os.name == "nt":
-            subprocess.run(
+            subprocess.run(  # nosec B603 B607 - taskkill on a pid we own
                 ["taskkill", "/F", "/T", "/PID", str(page.pid)],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -254,7 +254,7 @@ CAPTURES: tuple[Capture, ...] = (
 def _answers(url: str) -> bool:
     """Whether something is already serving that URL, right now."""
     try:
-        with urllib.request.urlopen(url, timeout=1) as answer:
+        with urllib.request.urlopen(url, timeout=1) as answer:  # nosec B310 - a local health URL this file built
             return answer.status < 500
     except (urllib.error.URLError, OSError):
         return False
@@ -270,7 +270,7 @@ def wait_until_healthy(url: str, *, timeout: float = 90.0) -> None:
     last: Exception | None = None
     while time.monotonic() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=2) as answer:
+            with urllib.request.urlopen(url, timeout=2) as answer:  # nosec B310 - a local health URL this file built
                 if answer.status < 500:
                     return
         except (urllib.error.URLError, OSError) as exc:  # not up yet
@@ -301,7 +301,7 @@ class Serving:
                 f"{self.health} already answers: stop what is listening before capturing, "
                 "or the picture will be of that and not of this build"
             )
-        self.process = subprocess.Popen(
+        self.process = subprocess.Popen(  # nosec B603 - constant argv, built here
             list(self.command), cwd=ROOT_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
         )
         wait_until_healthy(self.health)
@@ -313,7 +313,7 @@ class Serving:
         if self.process is None:
             return
         if os.name == "nt":
-            subprocess.run(
+            subprocess.run(  # nosec B603 B607 - taskkill on a pid we own
                 ["taskkill", "/F", "/T", "/PID", str(self.process.pid)],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -352,7 +352,7 @@ def _chrome_binary() -> str:
 def by_chrome(capture: Capture) -> None:
     """One pass, headless. `--virtual-time-budget` is what makes a JavaScript page render."""
     width, height = VIEWPORT
-    subprocess.run(
+    subprocess.run(  # nosec B603 - constant argv, built here
         [
             _chrome_binary(),
             "--headless",
@@ -422,7 +422,7 @@ ENGINES = {"chrome": by_chrome, "playwright": by_playwright}
 
 def _git_revision() -> str | None:
     try:
-        done = subprocess.run(
+        done = subprocess.run(  # nosec B603 B607 - constant argv, built here
             ["git", "rev-parse", "HEAD"], cwd=ROOT_DIR, capture_output=True, text=True, check=True
         )
     except (OSError, subprocess.CalledProcessError):

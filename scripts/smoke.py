@@ -24,7 +24,7 @@ import json
 import os
 import platform
 import shutil
-import subprocess
+import subprocess  # nosec B404 - local processes, constant argv
 import sys
 import tempfile
 import time
@@ -59,7 +59,7 @@ def _run(*arguments: str, root: Path) -> None:
     reader with the same lines they would have seen typing the command themselves.
     """
     print(f"[run] {' '.join(arguments)}")
-    done = subprocess.run(
+    done = subprocess.run(  # nosec B603 - sys.executable, constant argv
         [sys.executable, *arguments],
         cwd=ROOT_DIR,
         env={**os.environ, "PYTHONIOENCODING": "utf-8", ROOT_ENV: str(root)},
@@ -108,7 +108,7 @@ def steps() -> None:
 
 
 def _git(*arguments: str) -> str:
-    done = subprocess.run(
+    done = subprocess.run(  # nosec B603 B607 - constant argv, built here
         ["git", *arguments], cwd=ROOT_DIR, capture_output=True, text=True, check=False
     )
     return done.stdout.strip()
@@ -123,7 +123,7 @@ def tool_versions() -> dict[str, str]:
             versions[name] = "not installed"
     for binary, arguments in (("uv", ("--version",)), ("docker", ("--version",))):
         if shutil.which(binary):
-            done = subprocess.run([binary, *arguments], capture_output=True, text=True, check=False)
+            done = subprocess.run([binary, *arguments], capture_output=True, text=True, check=False)  # nosec B603 - constant argv, built here
             versions[binary] = done.stdout.strip() or "unknown"
     return versions
 

@@ -21,7 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import subprocess
+import subprocess  # nosec B404 - local processes, constant argv
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -222,7 +222,7 @@ def _declare_gif(image: Path, frames: int) -> None:
         payload = json.loads(manifest.read_text(encoding="utf-8"))
     payload.setdefault("schema", "image-manifest/1")
     payload.setdefault("images", {})
-    revision = subprocess.run(
+    revision = subprocess.run(  # nosec B603 B607 - constant argv, built here
         ["git", "rev-parse", "HEAD"], cwd=ROOT_DIR, capture_output=True, text=True, check=False
     ).stdout.strip()
     payload["images"][image.name] = {
